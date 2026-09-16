@@ -435,6 +435,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
             }
         }
         .pickerStyle(.segmented)
+        .controlSize(.extraLarge)
         .tint(.blue)
         .labelsHidden()
     }
