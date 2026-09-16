@@ -1,0 +1,523 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		100000000000000000000001 /* Sources/PhoneMicCore/AudioConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000101 /* Sources/PhoneMicCore/AudioConstants.swift */; };
+		100000000000000000000002 /* Sources/PhoneMicCore/AudioPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000102 /* Sources/PhoneMicCore/AudioPacket.swift */; };
+		100000000000000000000003 /* Sources/PhoneMicCore/JitterBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000103 /* Sources/PhoneMicCore/JitterBuffer.swift */; };
+		100000000000000000000004 /* Sources/PhoneMicCore/LevelMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000104 /* Sources/PhoneMicCore/LevelMeter.swift */; };
+		100000000000000000000005 /* Sources/PhoneMicCore/PhoneMicTrustedPeerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000105 /* Sources/PhoneMicCore/PhoneMicTrustedPeerStore.swift */; };
+		100000000000000000000011 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000111 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSApp.swift */; };
+		100000000000000000000012 /* Apps/iOS/PhoneMicIOS/PhoneMicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000112 /* Apps/iOS/PhoneMicIOS/PhoneMicView.swift */; };
+		100000000000000000000013 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000113 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSModel.swift */; };
+		100000000000000000000014 /* Apps/iOS/PhoneMicIOS/MicrophoneStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000114 /* Apps/iOS/PhoneMicIOS/MicrophoneStreamer.swift */; };
+		100000000000000000000021 /* PhoneMicCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 100000000000000000000202 /* PhoneMicCore.framework */; };
+		100000000000000000000022 /* PhoneMicCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 100000000000000000000202 /* PhoneMicCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		100000000000000000000023 /* Apps/iOS/PhoneMicIOS/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000116 /* Apps/iOS/PhoneMicIOS/Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+100000000000000000000301 /* PBXContainerItemProxy */ = {
+	isa = PBXContainerItemProxy;
+	containerPortal = 100000000000000000000401 /* Project object */;
+	proxyType = 1;
+	remoteGlobalIDString = 100000000000000000000502;
+	remoteInfo = PhoneMicCore;
+};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		100000000000000000000601 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				100000000000000000000022 /* PhoneMicCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		100000000000000000000101 /* Sources/PhoneMicCore/AudioConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PhoneMicCore/AudioConstants.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000102 /* Sources/PhoneMicCore/AudioPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PhoneMicCore/AudioPacket.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000103 /* Sources/PhoneMicCore/JitterBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PhoneMicCore/JitterBuffer.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000104 /* Sources/PhoneMicCore/LevelMeter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PhoneMicCore/LevelMeter.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000105 /* Sources/PhoneMicCore/PhoneMicTrustedPeerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PhoneMicCore/PhoneMicTrustedPeerStore.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000111 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apps/iOS/PhoneMicIOS/PhoneMicIOSApp.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000112 /* Apps/iOS/PhoneMicIOS/PhoneMicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apps/iOS/PhoneMicIOS/PhoneMicView.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000113 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apps/iOS/PhoneMicIOS/PhoneMicIOSModel.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000114 /* Apps/iOS/PhoneMicIOS/MicrophoneStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apps/iOS/PhoneMicIOS/MicrophoneStreamer.swift; sourceTree = SOURCE_ROOT; };
+		100000000000000000000115 /* Apps/iOS/PhoneMicIOS/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Apps/iOS/PhoneMicIOS/Info.plist; sourceTree = SOURCE_ROOT; };
+		100000000000000000000116 /* Apps/iOS/PhoneMicIOS/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Apps/iOS/PhoneMicIOS/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		100000000000000000000118 /* Apps/iOS/PhoneMicIOS/PhoneMicIOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Apps/iOS/PhoneMicIOS/PhoneMicIOS.entitlements; sourceTree = SOURCE_ROOT; };
+		100000000000000000000201 /* PhoneMicIOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PhoneMicIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		100000000000000000000202 /* PhoneMicCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PhoneMicCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		100000000000000000000701 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000021 /* PhoneMicCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		100000000000000000000702 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		100000000000000000000801 = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000802 /* Sources */,
+				100000000000000000000803 /* Apps */,
+				100000000000000000000804 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		100000000000000000000802 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000805 /* PhoneMicCore */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		100000000000000000000803 /* Apps */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000806 /* PhoneMicIOS */,
+			);
+			path = Apps;
+			sourceTree = "<group>";
+		};
+		100000000000000000000804 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000201 /* PhoneMicIOS.app */,
+				100000000000000000000202 /* PhoneMicCore.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		100000000000000000000805 /* PhoneMicCore */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000101 /* Sources/PhoneMicCore/AudioConstants.swift */,
+				100000000000000000000102 /* Sources/PhoneMicCore/AudioPacket.swift */,
+				100000000000000000000103 /* Sources/PhoneMicCore/JitterBuffer.swift */,
+				100000000000000000000104 /* Sources/PhoneMicCore/LevelMeter.swift */,
+				100000000000000000000105 /* Sources/PhoneMicCore/PhoneMicTrustedPeerStore.swift */,
+			);
+			name = PhoneMicCore;
+			sourceTree = "<group>";
+		};
+		100000000000000000000806 /* PhoneMicIOS */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000111 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSApp.swift */,
+				100000000000000000000112 /* Apps/iOS/PhoneMicIOS/PhoneMicView.swift */,
+				100000000000000000000113 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSModel.swift */,
+				100000000000000000000114 /* Apps/iOS/PhoneMicIOS/MicrophoneStreamer.swift */,
+				100000000000000000000115 /* Apps/iOS/PhoneMicIOS/Info.plist */,
+				100000000000000000000118 /* Apps/iOS/PhoneMicIOS/PhoneMicIOS.entitlements */,
+				100000000000000000000116 /* Apps/iOS/PhoneMicIOS/Assets.xcassets */,
+			);
+			name = PhoneMicIOS;
+			sourceTree = "<group>";
+			};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		100000000000000000000501 /* PhoneMicIOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 100000000000000000000901 /* Build configuration list for PBXNativeTarget "PhoneMicIOS" */;
+			buildPhases = (
+				100000000000000000000711 /* Sources */,
+				100000000000000000000713 /* Resources */,
+				100000000000000000000701 /* Frameworks */,
+				100000000000000000000601 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				100000000000000000000302 /* PBXTargetDependency */,
+			);
+			name = PhoneMicIOS;
+			productName = PhoneMicIOS;
+			productReference = 100000000000000000000201 /* PhoneMicIOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		100000000000000000000502 /* PhoneMicCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 100000000000000000000902 /* Build configuration list for PBXNativeTarget "PhoneMicCore" */;
+			buildPhases = (
+				100000000000000000000712 /* Sources */,
+				100000000000000000000702 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PhoneMicCore;
+			productName = PhoneMicCore;
+			productReference = 100000000000000000000202 /* PhoneMicCore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		100000000000000000000401 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					100000000000000000000501 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+				100000000000000000000502 = {
+					CreatedOnToolsVersion = 26.3;
+				};
+			};
+			};
+			buildConfigurationList = 100000000000000000000900 /* Build configuration list for PBXProject "PhoneMic" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 100000000000000000000801;
+			productRefGroup = 100000000000000000000804 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				100000000000000000000501 /* PhoneMicIOS */,
+				100000000000000000000502 /* PhoneMicCore */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		100000000000000000000713 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000023 /* Apps/iOS/PhoneMicIOS/Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		100000000000000000000711 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000011 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSApp.swift in Sources */,
+				100000000000000000000012 /* Apps/iOS/PhoneMicIOS/PhoneMicView.swift in Sources */,
+				100000000000000000000013 /* Apps/iOS/PhoneMicIOS/PhoneMicIOSModel.swift in Sources */,
+				100000000000000000000014 /* Apps/iOS/PhoneMicIOS/MicrophoneStreamer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		100000000000000000000712 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000001 /* Sources/PhoneMicCore/AudioConstants.swift in Sources */,
+				100000000000000000000002 /* Sources/PhoneMicCore/AudioPacket.swift in Sources */,
+				100000000000000000000003 /* Sources/PhoneMicCore/JitterBuffer.swift in Sources */,
+				100000000000000000000004 /* Sources/PhoneMicCore/LevelMeter.swift in Sources */,
+				100000000000000000000005 /* Sources/PhoneMicCore/PhoneMicTrustedPeerStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		100000000000000000000302 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 100000000000000000000502 /* PhoneMicCore */;
+			targetProxy = 100000000000000000000301 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		100000000000000000000A00 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		100000000000000000000A01 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		100000000000000000000A10 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Apps/iOS/PhoneMicIOS/PhoneMicIOS.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
+				DEVELOPMENT_TEAM = Q3L94N8ATN;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Apps/iOS/PhoneMicIOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.phonemic.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		100000000000000000000A11 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Apps/iOS/PhoneMicIOS/PhoneMicIOS.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
+				DEVELOPMENT_TEAM = Q3L94N8ATN;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Apps/iOS/PhoneMicIOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.phonemic.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		100000000000000000000A20 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.phonemic.core;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		100000000000000000000A21 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.phonemic.core;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		100000000000000000000900 /* Build configuration list for PBXProject "PhoneMic" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000A00 /* Debug */,
+				100000000000000000000A01 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		100000000000000000000901 /* Build configuration list for PBXNativeTarget "PhoneMicIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000A10 /* Debug */,
+				100000000000000000000A11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		100000000000000000000902 /* Build configuration list for PBXNativeTarget "PhoneMicCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000A20 /* Debug */,
+				100000000000000000000A21 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 100000000000000000000401 /* Project object */;
+}

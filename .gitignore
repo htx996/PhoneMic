@@ -1,0 +1,11 @@
+.build/
+build/
+dist/
+outputs/
+work/
+.codex/
+.DS_Store
+DerivedData/
+*.xcuserdata/
+xcuserdata/
+*.xcuserstate
