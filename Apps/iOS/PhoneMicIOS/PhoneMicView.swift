@@ -427,98 +427,153 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
+    @Namespace private var glassNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var pressedOption: Option?
+
     var body: some View {
-        PhoneMicNativeSegmentedControl(options: options, selection: $selection, title: title)
+        Group {
+            if #available(iOS 26.0, *) {
+                liquidGlassControl
+            } else {
+                fallbackControl
+            }
+        }
         .frame(maxWidth: .infinity)
         .frame(height: 62)
     }
-}
 
-private struct PhoneMicNativeSegmentedControl<Option: Hashable & Identifiable>: UIViewRepresentable {
-    let options: [Option]
-    @Binding var selection: Option
-    let title: (Option) -> String
+    @available(iOS 26.0, *)
+    private var liquidGlassControl: some View {
+        ZStack {
+            liquidGlassSurfaces
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    func makeUIView(context: Context) -> ContainerView {
-        let view = ContainerView()
-        configureSegments(in: view.control)
-        view.control.addTarget(context.coordinator, action: #selector(Coordinator.selectionChanged(_:)), for: .valueChanged)
-        applyConfiguration(to: view.control)
-        return view
-    }
-
-    func updateUIView(_ view: ContainerView, context: Context) {
-        context.coordinator.parent = self
-        configureSegments(in: view.control)
-        applyConfiguration(to: view.control)
-    }
-
-    private func configureSegments(in control: UISegmentedControl) {
-        if control.numberOfSegments != options.count {
-            control.removeAllSegments()
-            for (index, option) in options.enumerated() {
-                control.insertSegment(withTitle: title(option), at: index, animated: false)
+            HStack(spacing: 0) {
+                ForEach(options) { option in
+                    segmentButton(for: option)
+                }
             }
+            .padding(4)
+        }
+        .scaleEffect(pressedOption == nil || reduceMotion ? 1 : 0.985)
+        .animation(.interactiveSpring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.06), value: selection)
+        .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.72, blendDuration: 0.04), value: pressedOption)
+    }
+
+    @available(iOS 26.0, *)
+    private var liquidGlassSurfaces: some View {
+        GlassEffectContainer(spacing: 28) {
+            ZStack {
+                Capsule()
+                    .fill(.clear)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 62)
+                    .glassEffect(.regular.interactive(pressedOption != nil), in: .capsule)
+                    .glassEffectID("settings-choice-background", in: glassNamespace)
+
+                HStack(spacing: 0) {
+                    ForEach(options) { option in
+                        ZStack {
+                            if selection == option {
+                                Capsule()
+                                    .fill(.clear)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 54)
+                                    .glassEffect(.regular.tint(selectionGlassTint).interactive(pressedOption == option), in: .capsule)
+                                    .glassEffectID("settings-choice-selection", in: glassNamespace)
+                                    .glassEffectTransition(.matchedGeometry)
+                                    .scaleEffect(pressedOption == option && !reduceMotion ? 0.965 : 1)
+                                    .transition(.identity)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 54)
+                    }
+                }
+                .padding(4)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 62)
+        }
+        .allowsHitTesting(false)
+    }
+
+    @available(iOS 26.0, *)
+    private func segmentButton(for option: Option) -> some View {
+        Button {
+            select(option)
+        } label: {
+            Text(title(option))
+                .font(.system(size: 17, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .foregroundStyle(selection == option ? Color.blue : inactiveTitleColor)
+                .frame(maxWidth: .infinity, minHeight: 54)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in pressedOption = option }
+                .onEnded { _ in pressedOption = nil }
+        )
+        .accessibilityAddTraits(selection == option ? .isSelected : [])
+    }
+
+    private var fallbackControl: some View {
+        ZStack {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    Capsule()
+                        .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.06), lineWidth: 1)
+                }
+
+            HStack(spacing: 0) {
+                ForEach(options) { option in
+                    Button {
+                        select(option)
+                    } label: {
+                        ZStack {
+                            if selection == option {
+                                Capsule()
+                                    .fill(.thinMaterial)
+                                    .padding(4)
+                            }
+
+                            Text(title(option))
+                                .font(.system(size: 17, weight: .semibold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                                .foregroundStyle(selection == option ? Color.blue : inactiveTitleColor)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 54)
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selection == option ? .isSelected : [])
+                }
+            }
+            .padding(4)
+        }
+    }
+
+    private func select(_ option: Option) {
+        if reduceMotion {
+            selection = option
         } else {
-            for (index, option) in options.enumerated() {
-                control.setTitle(title(option), forSegmentAt: index)
+            withAnimation(.interactiveSpring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.06)) {
+                selection = option
             }
         }
     }
 
-    private func applyConfiguration(to control: UISegmentedControl) {
-        let font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor.label], for: .normal)
-        control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor.systemBlue], for: .selected)
-        control.selectedSegmentTintColor = UIColor.systemBackground.withAlphaComponent(0.92)
-        control.selectedSegmentIndex = options.firstIndex(of: selection) ?? UISegmentedControl.noSegment
+    private var inactiveTitleColor: Color {
+        colorScheme == .dark ? .white : .black
     }
 
-    final class ContainerView: UIView {
-        let control = UISegmentedControl()
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-
-            backgroundColor = UIColor.systemBackground.withAlphaComponent(0.42)
-            layer.cornerRadius = 31
-            layer.cornerCurve = .continuous
-            layer.borderColor = UIColor.separator.withAlphaComponent(0.10).cgColor
-            layer.borderWidth = 0.5
-            control.translatesAutoresizingMaskIntoConstraints = false
-            control.apportionsSegmentWidthsByContent = false
-            control.backgroundColor = .clear
-            addSubview(control)
-
-            NSLayoutConstraint.activate([
-                control.leadingAnchor.constraint(equalTo: leadingAnchor),
-                control.trailingAnchor.constraint(equalTo: trailingAnchor),
-                control.topAnchor.constraint(equalTo: topAnchor),
-                control.bottomAnchor.constraint(equalTo: bottomAnchor)
-            ])
-        }
-
-        required init?(coder: NSCoder) {
-            nil
-        }
-    }
-
-    final class Coordinator: NSObject {
-        var parent: PhoneMicNativeSegmentedControl
-
-        init(parent: PhoneMicNativeSegmentedControl) {
-            self.parent = parent
-        }
-
-        @objc func selectionChanged(_ sender: UISegmentedControl) {
-            let index = sender.selectedSegmentIndex
-            guard parent.options.indices.contains(index) else { return }
-            parent.selection = parent.options[index]
-        }
+    private var selectionGlassTint: Color {
+        colorScheme == .dark ? .white.opacity(0.12) : .black.opacity(0.08)
     }
 }
 
