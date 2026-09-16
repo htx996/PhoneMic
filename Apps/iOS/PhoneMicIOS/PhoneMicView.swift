@@ -109,7 +109,7 @@ private struct TransportButton: View {
                     )
                 }
             }
-            .buttonStyle(PhoneMicBouncyButtonStyle(scale: 0.94))
+            .phoneMicSystemButtonStyle(prominent: true)
             .accessibilityLabel(state.buttonTitle)
         }
     }
@@ -374,12 +374,12 @@ private struct PairingCard: View {
                 HStack(spacing: 12) {
                     if let secondaryTitle, let secondaryAction {
                         Button(secondaryTitle, action: secondaryAction)
-                            .buttonStyle(.bordered)
+                            .phoneMicSystemButtonStyle()
                             .frame(maxWidth: .infinity)
                     }
                     if let primaryTitle, let primaryAction {
                         Button(primaryTitle, action: primaryAction)
-                            .buttonStyle(.borderedProminent)
+                            .phoneMicSystemButtonStyle(prominent: true)
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -414,7 +414,7 @@ private struct DiscoveryCard: View {
             Spacer(minLength: 8)
 
             Button("信任", action: action)
-                .buttonStyle(.borderedProminent)
+                .phoneMicSystemButtonStyle(prominent: true)
                 .controlSize(.large)
         }
         .padding(16)
@@ -477,6 +477,23 @@ private extension View {
             Color(uiColor: .secondarySystemGroupedBackground),
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
+    }
+
+    @ViewBuilder
+    func phoneMicSystemButtonStyle(prominent: Bool = false) -> some View {
+        if #available(iOS 26.0, *) {
+            if prominent {
+                self.buttonStyle(.glassProminent)
+            } else {
+                self.buttonStyle(.glass)
+            }
+        } else {
+            if prominent {
+                self.buttonStyle(.borderedProminent)
+            } else {
+                self.buttonStyle(.bordered)
+            }
+        }
     }
 }
 
@@ -572,6 +589,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
         Picker("", selection: $selection) {
             ForEach(options) { option in
                 Text(title(option))
+                    .foregroundStyle(selection == option ? Color.blue : Color.black)
                     .tag(option)
             }
         }
@@ -579,17 +597,8 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
         .labelsHidden()
         .controlSize(.large)
         .frame(maxWidth: .infinity)
+        .tint(.blue)
         .sensoryFeedback(.selection, trigger: selection)
-    }
-}
-
-private struct PhoneMicBouncyButtonStyle: ButtonStyle {
-    let scale: CGFloat
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? scale : 1)
-            .animation(.spring(response: 0.22, dampingFraction: 0.58, blendDuration: 0.02), value: configuration.isPressed)
     }
 }
 
