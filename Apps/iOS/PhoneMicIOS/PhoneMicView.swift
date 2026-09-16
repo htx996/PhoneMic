@@ -470,7 +470,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
             HStack(spacing: 0) {
                 ForEach(options) { option in
                     Button {
-                        withAnimation {
+                        withAnimation(.interactiveSpring) {
                             selection = option
                         }
                     } label: {
@@ -482,7 +482,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
                             .frame(maxWidth: .infinity, minHeight: 54)
                             .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PhoneMicChoiceButtonStyle())
                     .accessibilityAddTraits(selection == option ? .isSelected : [])
                 }
             }
@@ -509,6 +509,16 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
 
     private var fallbackBorder: Color {
         colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.07)
+    }
+}
+
+private struct PhoneMicChoiceButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+            .animation(.interactiveSpring, value: configuration.isPressed)
     }
 }
 
