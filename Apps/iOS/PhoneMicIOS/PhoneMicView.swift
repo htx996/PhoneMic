@@ -435,7 +435,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
             if #available(iOS 26.0, *) {
                 GlassEffectContainer(spacing: 0) {
                     content
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 31))
+                        .glassEffect(.regular, in: .rect(cornerRadius: 31))
                 }
             } else {
                 content
