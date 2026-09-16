@@ -454,27 +454,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
         ZStack {
             HStack(spacing: 0) {
                 ForEach(options) { option in
-                    Button {
-                        withAnimation(.interactiveSpring) {
-                            selection = option
-                        }
-                    } label: {
-                        ZStack {
-                            if selection == option {
-                                selectedSegment
-                            }
-
-                            Text(title(option))
-                                .font(.system(size: 17, weight: .semibold))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.82)
-                                .foregroundStyle(titleColor(for: option))
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 54)
-                        .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
-                    }
-                    .buttonStyle(PhoneMicChoiceButtonStyle())
-                    .accessibilityAddTraits(selection == option ? .isSelected : [])
+                    segmentButton(for: option)
                 }
             }
             .padding(4)
@@ -484,19 +464,58 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     }
 
     @ViewBuilder
-    private var selectedSegment: some View {
-        let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
+    private func segmentButton(for option: Option) -> some View {
+        let isSelected = selection == option
 
-        if #available(iOS 26.0, *) {
-            shape
-                .fill(Color.clear)
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 27))
-                .glassEffectID("selected-choice", in: selectionNamespace)
+        if #available(iOS 26.0, *), isSelected {
+            Button {
+                select(option)
+            } label: {
+                titleLabel(for: option)
+                    .frame(maxWidth: .infinity, minHeight: 54)
+                    .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
+            }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.roundedRectangle(radius: 27))
+            .glassEffectID("selected-choice", in: selectionNamespace)
+            .accessibilityAddTraits(.isSelected)
         } else {
-            shape
-                .fill(colorScheme == .dark ? Color.white.opacity(0.14) : Color.white.opacity(0.78))
-                .shadow(color: colorScheme == .dark ? .black.opacity(0.22) : .black.opacity(0.06), radius: 8, x: 0, y: 4)
+            Button {
+                select(option)
+            } label: {
+                ZStack {
+                    if isSelected {
+                        fallbackSelectedSegment
+                    }
+
+                    titleLabel(for: option)
+                }
+                .frame(maxWidth: .infinity, minHeight: 54)
+                .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
+            }
+            .buttonStyle(PhoneMicChoiceButtonStyle())
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
+    }
+
+    private func select(_ option: Option) {
+        withAnimation(.interactiveSpring) {
+            selection = option
+        }
+    }
+
+    private func titleLabel(for option: Option) -> some View {
+        Text(title(option))
+            .font(.system(size: 17, weight: .semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .foregroundStyle(titleColor(for: option))
+    }
+
+    private var fallbackSelectedSegment: some View {
+        RoundedRectangle(cornerRadius: 27, style: .continuous)
+            .fill(colorScheme == .dark ? Color.white.opacity(0.14) : Color.white.opacity(0.78))
+            .shadow(color: colorScheme == .dark ? .black.opacity(0.22) : .black.opacity(0.06), radius: 8, x: 0, y: 4)
     }
 
     private var fallbackBorder: Color {
