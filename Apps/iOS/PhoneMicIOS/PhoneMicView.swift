@@ -586,19 +586,90 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     let title: (Option) -> String
 
     var body: some View {
-        Picker("", selection: $selection) {
-            ForEach(options) { option in
-                Text(title(option))
-                    .foregroundStyle(selection == option ? Color.blue : Color.black)
-                    .tag(option)
+        PhoneMicSegmentedControl(
+            options: options,
+            selection: $selection,
+            title: title
+        )
+        .frame(maxWidth: .infinity)
+        .frame(height: 54)
+    }
+}
+
+private struct PhoneMicSegmentedControl<Option: Hashable & Identifiable>: UIViewRepresentable {
+    let options: [Option]
+    @Binding var selection: Option
+    let title: (Option) -> String
+
+    func makeUIView(context: Context) -> UISegmentedControl {
+        let control = UISegmentedControl(items: options.map(title))
+        control.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.selectionChanged(_:)),
+            for: .valueChanged
+        )
+        applyAppearance(to: control)
+        applySelection(to: control)
+        return control
+    }
+
+    func updateUIView(_ control: UISegmentedControl, context: Context) {
+        context.coordinator.options = options
+        context.coordinator.selection = $selection
+
+        if control.numberOfSegments != options.count {
+            control.removeAllSegments()
+            for (index, option) in options.enumerated() {
+                control.insertSegment(withTitle: title(option), at: index, animated: false)
+            }
+        } else {
+            for (index, option) in options.enumerated() {
+                control.setTitle(title(option), forSegmentAt: index)
             }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .controlSize(.large)
-        .frame(maxWidth: .infinity)
-        .tint(.blue)
-        .sensoryFeedback(.selection, trigger: selection)
+
+        applyAppearance(to: control)
+        applySelection(to: control)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(options: options, selection: $selection)
+    }
+
+    private func applySelection(to control: UISegmentedControl) {
+        control.selectedSegmentIndex = options.firstIndex(of: selection) ?? UISegmentedControl.noSegment
+    }
+
+    private func applyAppearance(to control: UISegmentedControl) {
+        control.selectedSegmentTintColor = nil
+        control.backgroundColor = nil
+        control.setTitleTextAttributes(textAttributes(color: .black), for: .normal)
+        control.setTitleTextAttributes(textAttributes(color: .systemBlue), for: .selected)
+    }
+
+    private func textAttributes(color: UIColor) -> [NSAttributedString.Key: Any] {
+        [
+            .foregroundColor: color,
+            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
+        ]
+    }
+
+    final class Coordinator: NSObject {
+        var options: [Option]
+        var selection: Binding<Option>
+
+        init(options: [Option], selection: Binding<Option>) {
+            self.options = options
+            self.selection = selection
+        }
+
+        @objc
+        func selectionChanged(_ sender: UISegmentedControl) {
+            guard sender.selectedSegmentIndex >= 0,
+                  sender.selectedSegmentIndex < options.count
+            else { return }
+            selection.wrappedValue = options[sender.selectedSegmentIndex]
+        }
     }
 }
 
