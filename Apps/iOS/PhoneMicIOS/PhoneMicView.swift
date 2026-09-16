@@ -454,38 +454,30 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
         ZStack {
             HStack(spacing: 0) {
                 ForEach(options) { option in
-                    Group {
-                        if selection == option {
-                            selectedSegment
-                        } else {
-                            Color.clear
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                }
-            }
-            .padding(4)
-            .allowsHitTesting(false)
-
-            HStack(spacing: 0) {
-                ForEach(options) { option in
                     Button {
                         withAnimation(.interactiveSpring) {
                             selection = option
                         }
                     } label: {
-                        Text(title(option))
-                            .font(.system(size: 17, weight: .semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
-                            .foregroundStyle(selection == option ? Color.blue : Color.black)
-                            .frame(maxWidth: .infinity, minHeight: 54)
-                            .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
+                        ZStack {
+                            if selection == option {
+                                selectedSegment
+                            }
+
+                            Text(title(option))
+                                .font(.system(size: 17, weight: .semibold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                                .foregroundStyle(selection == option ? Color.blue : Color.black)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 54)
+                        .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
                     }
                     .buttonStyle(PhoneMicChoiceButtonStyle())
                     .accessibilityAddTraits(selection == option ? .isSelected : [])
                 }
             }
+            .padding(4)
         }
         .frame(height: 62)
         .clipShape(RoundedRectangle(cornerRadius: 31, style: .continuous))
@@ -517,7 +509,7 @@ private struct PhoneMicChoiceButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
             .animation(.interactiveSpring, value: configuration.isPressed)
     }
 }
