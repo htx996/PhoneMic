@@ -428,7 +428,57 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     let title: (Option) -> String
 
     var body: some View {
-        systemSegmentedPicker
+        if #available(iOS 26.0, *) {
+            liquidGlassPicker
+        } else {
+            systemSegmentedPicker
+        }
+    }
+
+    @available(iOS 26.0, *)
+    private var liquidGlassPicker: some View {
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 0) {
+                ForEach(options) { option in
+                    choiceButton(for: option)
+                }
+            }
+            .padding(4)
+            .frame(maxWidth: .infinity)
+            .frame(height: 62)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+    }
+
+    @available(iOS 26.0, *)
+    private func choiceButton(for option: Option) -> some View {
+        let isSelected = selection == option
+
+        let button = Button {
+            withAnimation(.bouncy) {
+                selection = option
+            }
+        } label: {
+            Text(title(option))
+                .font(.system(size: 17, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .foregroundStyle(isSelected ? Color.blue : Color.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .contentShape(Capsule())
+        }
+
+        return Group {
+            if isSelected {
+                button
+                    .buttonStyle(.glass)
+            } else {
+                button
+                    .buttonStyle(.plain)
+            }
+        }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var systemSegmentedPicker: some View {
