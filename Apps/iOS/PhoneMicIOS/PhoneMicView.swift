@@ -430,7 +430,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     var body: some View {
         PhoneMicNativeSegmentedControl(options: options, selection: $selection, title: title)
         .frame(maxWidth: .infinity)
-        .frame(height: 54)
+        .frame(height: 62)
     }
 }
 
@@ -443,17 +443,21 @@ private struct PhoneMicNativeSegmentedControl<Option: Hashable & Identifiable>: 
         Coordinator(parent: self)
     }
 
-    func makeUIView(context: Context) -> UISegmentedControl {
-        let control = UISegmentedControl(items: options.map(title))
-        control.apportionsSegmentWidthsByContent = false
-        control.addTarget(context.coordinator, action: #selector(Coordinator.selectionChanged(_:)), for: .valueChanged)
-        applyConfiguration(to: control)
-        return control
+    func makeUIView(context: Context) -> ContainerView {
+        let view = ContainerView()
+        configureSegments(in: view.control)
+        view.control.addTarget(context.coordinator, action: #selector(Coordinator.selectionChanged(_:)), for: .valueChanged)
+        applyConfiguration(to: view.control)
+        return view
     }
 
-    func updateUIView(_ control: UISegmentedControl, context: Context) {
+    func updateUIView(_ view: ContainerView, context: Context) {
         context.coordinator.parent = self
+        configureSegments(in: view.control)
+        applyConfiguration(to: view.control)
+    }
 
+    private func configureSegments(in control: UISegmentedControl) {
         if control.numberOfSegments != options.count {
             control.removeAllSegments()
             for (index, option) in options.enumerated() {
@@ -464,15 +468,43 @@ private struct PhoneMicNativeSegmentedControl<Option: Hashable & Identifiable>: 
                 control.setTitle(title(option), forSegmentAt: index)
             }
         }
-
-        applyConfiguration(to: control)
     }
 
     private func applyConfiguration(to control: UISegmentedControl) {
         let font = UIFont.systemFont(ofSize: 17, weight: .semibold)
         control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor.label], for: .normal)
         control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor.systemBlue], for: .selected)
+        control.selectedSegmentTintColor = UIColor.systemBackground.withAlphaComponent(0.92)
         control.selectedSegmentIndex = options.firstIndex(of: selection) ?? UISegmentedControl.noSegment
+    }
+
+    final class ContainerView: UIView {
+        let control = UISegmentedControl()
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+
+            backgroundColor = UIColor.systemBackground.withAlphaComponent(0.42)
+            layer.cornerRadius = 31
+            layer.cornerCurve = .continuous
+            layer.borderColor = UIColor.separator.withAlphaComponent(0.10).cgColor
+            layer.borderWidth = 0.5
+            control.translatesAutoresizingMaskIntoConstraints = false
+            control.apportionsSegmentWidthsByContent = false
+            control.backgroundColor = .clear
+            addSubview(control)
+
+            NSLayoutConstraint.activate([
+                control.leadingAnchor.constraint(equalTo: leadingAnchor),
+                control.trailingAnchor.constraint(equalTo: trailingAnchor),
+                control.topAnchor.constraint(equalTo: topAnchor),
+                control.bottomAnchor.constraint(equalTo: bottomAnchor)
+            ])
+        }
+
+        required init?(coder: NSCoder) {
+            nil
+        }
     }
 
     final class Coordinator: NSObject {
