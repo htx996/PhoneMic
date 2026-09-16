@@ -427,128 +427,89 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
-    @Namespace private var selectionNamespace
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                GlassEffectContainer(spacing: 18) {
-                    segmentedContent
-                        .background {
-                            RoundedRectangle(cornerRadius: 25, style: .continuous)
-                                .fill(containerFill)
-                        }
-                        .glassEffect(.regular.tint(glassTint).interactive(), in: .rect(cornerRadius: 25))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 25, style: .continuous)
-                                .strokeBorder(containerBorder, lineWidth: 1)
-                        }
-                        .shadow(color: containerShadowColor, radius: 16, x: 0, y: 8)
-                }
-            } else {
-                segmentedContent
-                    .background {
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .fill(containerFill)
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .strokeBorder(containerBorder, lineWidth: 1)
-                    }
+        PhoneMicSegmentedControl(
+            options: options,
+            selection: $selection,
+            title: title
+        )
+        .frame(maxWidth: .infinity)
+        .frame(height: 54)
+    }
+}
+
+private struct PhoneMicSegmentedControl<Option: Hashable & Identifiable>: UIViewRepresentable {
+    let options: [Option]
+    @Binding var selection: Option
+    let title: (Option) -> String
+
+    func makeUIView(context: Context) -> UISegmentedControl {
+        let control = UISegmentedControl(items: options.map(title))
+        control.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.selectionChanged(_:)),
+            for: .valueChanged
+        )
+        applyAppearance(to: control)
+        applySelection(to: control)
+        return control
+    }
+
+    func updateUIView(_ control: UISegmentedControl, context: Context) {
+        context.coordinator.options = options
+        context.coordinator.selection = $selection
+
+        if control.numberOfSegments != options.count {
+            control.removeAllSegments()
+            for (index, option) in options.enumerated() {
+                control.insertSegment(withTitle: title(option), at: index, animated: false)
+            }
+        } else {
+            for (index, option) in options.enumerated() {
+                control.setTitle(title(option), forSegmentAt: index)
             }
         }
-        .sensoryFeedback(.selection, trigger: selection)
+
+        applyAppearance(to: control)
+        applySelection(to: control)
     }
 
-    private var segmentedContent: some View {
-        ZStack {
-            HStack(spacing: 0) {
-                ForEach(options) { option in
-                    ZStack {
-                        if selection == option {
-                            selectedCapsule
-                                .matchedGeometryEffect(id: "selected-choice", in: selectionNamespace)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                }
-            }
-            .padding(4)
-            .allowsHitTesting(false)
+    func makeCoordinator() -> Coordinator {
+        Coordinator(options: options, selection: $selection)
+    }
 
-            HStack(spacing: 0) {
-                ForEach(options) { option in
-                    Button {
-                        withAnimation(.spring(response: 0.30, dampingFraction: 0.72, blendDuration: 0.06)) {
-                            selection = option
-                        }
-                    } label: {
-                        Text(title(option))
-                            .font(.system(size: 17, weight: .semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
-                            .foregroundStyle(selection == option ? selectedTextColor : inactiveTextColor)
-                            .frame(maxWidth: .infinity, minHeight: 54)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(PhoneMicBouncyButtonStyle(scale: 0.94))
-                    .accessibilityAddTraits(selection == option ? .isSelected : [])
-                }
-            }
+    private func applySelection(to control: UISegmentedControl) {
+        control.selectedSegmentIndex = options.firstIndex(of: selection) ?? UISegmentedControl.noSegment
+    }
+
+    private func applyAppearance(to control: UISegmentedControl) {
+        control.setTitleTextAttributes(textAttributes(color: .black), for: .normal)
+        control.setTitleTextAttributes(textAttributes(color: .systemBlue), for: .selected)
+    }
+
+    private func textAttributes(color: UIColor) -> [NSAttributedString.Key: Any] {
+        [
+            .foregroundColor: color,
+            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
+        ]
+    }
+
+    final class Coordinator: NSObject {
+        var options: [Option]
+        var selection: Binding<Option>
+
+        init(options: [Option], selection: Binding<Option>) {
+            self.options = options
+            self.selection = selection
         }
-        .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
-    }
 
-    @ViewBuilder
-    private var selectedCapsule: some View {
-        let shape = RoundedRectangle(cornerRadius: 21, style: .continuous)
-
-        shape
-            .fill(selectedFill)
-            .overlay {
-                shape
-                    .strokeBorder(selectedBorder, lineWidth: 1)
-            }
-            .shadow(color: selectedShadowColor, radius: 11, x: 0, y: 5)
-    }
-
-    private var selectedFill: Color {
-        colorScheme == .dark
-            ? Color.white.opacity(0.14)
-            : Color.black.opacity(0.065)
-    }
-
-    private var containerFill: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.46)
-    }
-
-    private var containerBorder: Color {
-        colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.070)
-    }
-
-    private var glassTint: Color {
-        colorScheme == .dark ? .white.opacity(0.05) : .white.opacity(0.14)
-    }
-
-    private var selectedBorder: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.64)
-    }
-
-    private var selectedTextColor: Color {
-        colorScheme == .dark ? .white : .primary
-    }
-
-    private var inactiveTextColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.66) : Color.black.opacity(0.48)
-    }
-
-    private var selectedShadowColor: Color {
-        colorScheme == .dark ? .black.opacity(0.30) : .black.opacity(0.075)
-    }
-
-    private var containerShadowColor: Color {
-        colorScheme == .dark ? .black.opacity(0.18) : .black.opacity(0.065)
+        @objc
+        func selectionChanged(_ sender: UISegmentedControl) {
+            guard sender.selectedSegmentIndex >= 0,
+                  sender.selectedSegmentIndex < options.count
+            else { return }
+            selection.wrappedValue = options[sender.selectedSegmentIndex]
+        }
     }
 }
 
