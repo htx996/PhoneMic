@@ -427,6 +427,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
+    @Namespace private var selectionNamespace
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -469,7 +470,9 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
             HStack(spacing: 0) {
                 ForEach(options) { option in
                     Button {
-                        selection = option
+                        withAnimation {
+                            selection = option
+                        }
                     } label: {
                         Text(title(option))
                             .font(.system(size: 17, weight: .semibold))
@@ -496,6 +499,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
             shape
                 .fill(Color.clear)
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 27))
+                .glassEffectID("selected-choice", in: selectionNamespace)
         } else {
             shape
                 .fill(colorScheme == .dark ? Color.white.opacity(0.14) : Color.white.opacity(0.78))
