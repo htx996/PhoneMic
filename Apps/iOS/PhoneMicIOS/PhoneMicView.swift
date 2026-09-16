@@ -3,8 +3,7 @@ import SwiftUI
 import UIKit
 
 // 视觉方向：Apple 原生（iOS 系统应用语言）
-// 中心元素为 Siri 风格虹彩光球（流体网格渐变）。
-// 结构、状态机与交互与原实现一致；仅替换视觉层。
+// 结构、状态机与交互与原实现一致；主操作保持清晰的麦克风/停止按钮。
 
 struct PhoneMicView: View {
     @StateObject private var model = PhoneMicIOSModel()
@@ -101,15 +100,14 @@ private struct TransportButton: View {
                         }
                     }
 
-                    SiriOrb(
-                        size: size,
-                        time: time,
-                        isLive: isLive,
-                        animate: !reduceMotion
-                    )
+                    Image(systemName: state.buttonSystemImage)
+                        .font(.system(size: size * 0.34, weight: .semibold))
+                        .frame(width: size, height: size)
                 }
             }
             .phoneMicSystemButtonStyle(prominent: true)
+            .buttonBorderShape(.circle)
+            .tint(state.accentColor)
             .accessibilityLabel(state.buttonTitle)
         }
     }
@@ -124,158 +122,6 @@ private struct RippleRing: View {
         Circle()
             .strokeBorder(tint.opacity(max(0, 0.42 * (1 - progress))), lineWidth: 2)
             .scaleEffect(1 + CGFloat(progress) * 0.85)
-    }
-}
-
-/// Siri 光球（图标版复刻）：
-/// 带彩色边缘光晕的球体 + 内部大块圆润彩色光斑 + 中心白核与斜向光束。
-private struct SiriOrb: View {
-    let size: CGFloat
-    let time: TimeInterval
-    let isLive: Bool
-    let animate: Bool
-
-    /// 一块光斑：相对球心的偏移 + 自身尺寸/倾角/自转。
-    private struct Lobe {
-        let color: Color
-        let x: CGFloat
-        let y: CGFloat
-        let width: CGFloat
-        let height: CGFloat
-        let rotation: Double
-        let spin: Double
-        let opacity: Double
-    }
-
-    private static let lobes: [Lobe] = [
-        Lobe(color: Color(red: 0.95, green: 0.20, blue: 0.50), x: -0.07, y: 0.17, width: 0.56, height: 0.42, rotation: 18, spin: 5.0, opacity: 0.62),
-        Lobe(color: Color(red: 0.16, green: 0.82, blue: 0.82), x: -0.16, y: -0.07, width: 0.46, height: 0.52, rotation: -22, spin: -4.4, opacity: 0.58),
-        Lobe(color: Color(red: 0.52, green: 0.44, blue: 0.95), x: 0.13, y: -0.13, width: 0.52, height: 0.46, rotation: 14, spin: 6.2, opacity: 0.56),
-        Lobe(color: Color(red: 0.20, green: 0.42, blue: 0.92), x: 0.17, y: 0.06, width: 0.38, height: 0.48, rotation: -10, spin: -5.6, opacity: 0.48),
-    ]
-
-    /// 球体边缘的彩色光晕色序：青 → 蓝 → 紫 → 品红 → 蓝 → 青。
-    private static let rimColors: [Color] = [
-        Color(red: 0.25, green: 0.88, blue: 0.86),
-        Color(red: 0.30, green: 0.55, blue: 1.00),
-        Color(red: 0.62, green: 0.36, blue: 1.00),
-        Color(red: 0.98, green: 0.24, blue: 0.56),
-        Color(red: 0.30, green: 0.70, blue: 0.95),
-        Color(red: 0.25, green: 0.88, blue: 0.86),
-    ]
-
-    var body: some View {
-        ZStack {
-            // 球体暗底
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.17, green: 0.13, blue: 0.28),
-                            Color(red: 0.04, green: 0.03, blue: 0.10),
-                        ],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: size * 0.58
-                    )
-                )
-
-            // 彩色边缘光晕：细窄一道，只作轮廓透光
-            Circle()
-                .strokeBorder(
-                    AngularGradient(gradient: Gradient(colors: Self.rimColors), center: .center),
-                    lineWidth: size * 0.055
-                )
-                .blur(radius: size * 0.045)
-                .opacity(0.70)
-                .blendMode(.plusLighter)
-
-            // 内部彩色光斑
-            lobesLayer
-                .blendMode(.plusLighter)
-
-            // 中心白核 + 光束
-            coreLayer
-                .blendMode(.plusLighter)
-
-            // 球体外缘
-            Circle()
-                .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8)
-        }
-        .frame(width: size, height: size)
-        .compositingGroup()
-    }
-
-    private var lobesLayer: some View {
-        ZStack {
-            ForEach(Self.lobes.indices, id: \.self) { index in
-                lobeView(Self.lobes[index])
-            }
-        }
-        .frame(width: size, height: size)
-        .compositingGroup()
-        .blur(radius: size * 0.018)
-        .rotationEffect(.degrees(animate ? time * 6 : 0))
-        .clipShape(Circle())
-    }
-
-    /// 每块光斑：先按自身倾角自转，再平移到相对球心的位置。
-    private func lobeView(_ lobe: Lobe) -> some View {
-        Ellipse()
-            .fill(lobe.color)
-            .frame(width: size * lobe.width, height: size * lobe.height)
-            .rotationEffect(.degrees(lobe.rotation + (animate ? time * lobe.spin : 0)))
-            .offset(x: size * lobe.x, y: size * lobe.y)
-            .opacity(min(1, lobe.opacity * (isLive ? 1.2 : 1)))
-            .blendMode(.plusLighter)
-    }
-
-    private var coreLayer: some View {
-        ZStack {
-            // 大范围柔光
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color.white,
-                            Color(red: 0.86, green: 0.82, blue: 1.00).opacity(0.55),
-                            .clear,
-                        ],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: size * 0.17
-                    )
-                )
-                .frame(width: size * 0.34, height: size * 0.34)
-                .blur(radius: size * 0.040)
-                .blendMode(.plusLighter)
-
-            // 锐利白核
-            Circle()
-                .fill(Color.white)
-                .frame(width: size * 0.09, height: size * 0.09)
-                .blur(radius: size * 0.030)
-                .blendMode(.plusLighter)
-
-            // 斜向光束
-            Capsule()
-                .fill(Color.white)
-                .frame(width: size * 0.58, height: size * 0.010)
-                .blur(radius: size * 0.006)
-                .rotationEffect(.degrees(-26))
-                .opacity(0.62)
-                .blendMode(.plusLighter)
-        }
-        .compositingGroup()
-        .scaleEffect(corePulse)
-    }
-
-    private var corePulse: CGFloat {
-        guard animate else { return 1 }
-
-        let speed = isLive ? 0.95 : 0.42
-        let wave = (sin(time * Double.pi * 2 * speed) + 1) / 2
-        return 0.96 + CGFloat(wave) * 0.07
     }
 }
 
@@ -776,6 +622,15 @@ private struct PhoneMicViewState {
             return "开始发送"
         case .waiting, .sending:
             return "停止发送"
+        }
+    }
+
+    var buttonSystemImage: String {
+        switch phase {
+        case .ready:
+            return "mic.fill"
+        case .waiting, .sending:
+            return "stop.fill"
         }
     }
 
