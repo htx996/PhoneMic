@@ -2,27 +2,41 @@ import PhoneMicCore
 import SwiftUI
 import UIKit
 
-// 视觉方向：Apple 原生（iOS 系统应用语言）
-// 结构、状态机与交互与原实现一致；主操作保持清晰的麦克风/停止按钮。
-
 struct PhoneMicView: View {
     @StateObject private var model = PhoneMicIOSModel()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsSettings = false
 
     var body: some View {
-        NavigationStack {
-            PhoneMicHome(model: model)
-                .navigationTitle("PhoneMic")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showsSettings = true
-                        } label: {
-                            Image(systemName: "gearshape")
+        TimelineView(.animation(minimumInterval: PhoneMicDisplayRefresh.interval, paused: reduceMotion)) { timeline in
+            GeometryReader { proxy in
+                let state = PhoneMicViewState(model: model)
+
+                ZStack {
+                    PhoneMicThemeStyleApplier(preference: model.themePreference)
+                        .frame(width: 0, height: 0)
+
+                    PhoneMicBackground(state: state)
+                        .ignoresSafeArea()
+
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 18) {
+                            MinimalStatusHome(
+                                model: model,
+                                state: state,
+                                displayTime: timeline.date.timeIntervalSinceReferenceDate,
+                                settingsAction: { showsSettings = true }
+                            )
                         }
-                        .accessibilityLabel("设置")
+                        .frame(maxWidth: 440)
+                        .frame(minHeight: max(0, proxy.size.height - proxy.safeAreaInsets.top - proxy.safeAreaInsets.bottom))
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity)
                     }
                 }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+            }
         }
         .sheet(isPresented: $showsSettings) {
             PhoneMicSettingsView(model: model)
@@ -30,127 +44,99 @@ struct PhoneMicView: View {
     }
 }
 
-private struct PhoneMicHome: View {
-    @ObservedObject var model: PhoneMicIOSModel
-
-    var body: some View {
-        let state = PhoneMicViewState(model: model)
-
-        ZStack {
-            PhoneMicThemeStyleApplier(preference: model.themePreference)
-                .frame(width: 0, height: 0)
-
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 26) {
-                    PairingSection(model: model, state: state)
-
-                    TransportButton(model: model, state: state, size: 178)
-                        .padding(.top, 12)
-
-                    StatusBlock(state: state)
-
-                    InfoCard(state: state)
-
-                    if !state.detailText.isEmpty {
-                        Text(state.detailText)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 4)
-                    }
-                }
-                .frame(maxWidth: 480)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .background(Color(uiColor: .systemGroupedBackground))
-    }
-}
-
-// MARK: - Transport button
-
-private struct TransportButton: View {
+private struct MinimalStatusHome: View {
     @ObservedObject var model: PhoneMicIOSModel
     let state: PhoneMicViewState
-    let size: CGFloat
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let displayTime: TimeInterval
+    let settingsAction: () -> Void
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: PhoneMicDisplayRefresh.interval, paused: reduceMotion)) { timeline in
-            let time = timeline.date.timeIntervalSinceReferenceDate
-            let wave = (sin(time * Double.pi * 2 * 0.45) + 1) / 2
-            let isLive = state.phase == .sending
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 28) {
+                content
+            }
+        } else {
+            content
+        }
+    }
 
-            Button {
+    @ViewBuilder
+    private var content: some View {
+        VStack(spacing: 18) {
+            PhoneMicTopBar(state: state, settingsAction: settingsAction)
+                .padding(.top, 8)
+
+            PairingArea(model: model, state: state)
+
+            Spacer(minLength: 24)
+
+            PrimaryMicButton(state: state, displayTime: displayTime, size: 228) {
                 model.toggle()
-            } label: {
-                ZStack {
-                    if isLive && !reduceMotion {
-                        ForEach(0..<3, id: \.self) { index in
-                            RippleRing(
-                                progress: (wave + Double(index) / 3.0).truncatingRemainder(dividingBy: 1),
-                                tint: state.accentColor
-                            )
-                            .frame(width: size, height: size)
-                        }
-                    }
-
-                    Image(systemName: state.buttonSystemImage)
-                        .font(.system(size: size * 0.34, weight: .semibold))
-                        .frame(width: size, height: size)
-                }
             }
-            .phoneMicSystemButtonStyle(prominent: true)
-            .buttonBorderShape(.circle)
-            .tint(state.accentColor)
-            .accessibilityLabel(state.buttonTitle)
+
+            VStack(spacing: 8) {
+                Text(state.statusTitle)
+                    .font(.system(.title2, design: .rounded).weight(.bold))
+                Text(state.statusSubtitle)
+                    .font(.system(.callout, design: .rounded).weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 24)
+
+            ConnectionSummaryCard(state: state, style: .prominent)
+                .padding(.bottom, 8)
         }
     }
 }
 
-/// 向外扩散的声波环，仅在发送中显示。
-private struct RippleRing: View {
-    let progress: Double
-    let tint: Color
-
-    var body: some View {
-        Circle()
-            .strokeBorder(tint.opacity(max(0, 0.42 * (1 - progress))), lineWidth: 2)
-            .scaleEffect(1 + CGFloat(progress) * 0.85)
-    }
-}
-
-private struct StatusBlock: View {
+private struct PhoneMicTopBar: View {
     let state: PhoneMicViewState
+    let settingsAction: () -> Void
 
     var body: some View {
-        VStack(spacing: 6) {
-            Text(state.statusTitle)
-                .font(.title2.weight(.bold))
+        HStack(spacing: 14) {
+            Image(systemName: state.micIcon)
+                .font(.system(size: 34, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(state.accentColor)
+                .frame(width: 44, height: 44)
 
-            Text(state.statusSubtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("PhoneMic")
+                    .font(.system(.title2, design: .rounded).weight(.bold))
+                Text(state.headline)
+                    .font(.system(.subheadline, design: .rounded).weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            Button(action: settingsAction) {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 19, weight: .bold))
+                    .frame(width: 42, height: 42)
+                    .contentShape(Circle())
+                    .liquidGlassSurface(cornerRadius: 21, tint: state.accentColor.opacity(0.08), isCircle: true, interactive: true)
+            }
+            .buttonStyle(PhoneMicBouncyButtonStyle(scale: 0.90))
+            .foregroundStyle(.primary)
+            .accessibilityLabel("设置")
         }
     }
 }
 
-// MARK: - Pairing
-
-private struct PairingSection: View {
+private struct PairingArea: View {
     @ObservedObject var model: PhoneMicIOSModel
     let state: PhoneMicViewState
 
     var body: some View {
         VStack(spacing: 12) {
             if let request = model.pendingPairingRequest {
-                PairingCard(
+                PairingPanel(
                     title: "配对请求",
                     subtitle: request.macName,
                     code: request.pairingCode,
@@ -163,7 +149,7 @@ private struct PairingSection: View {
             }
 
             if let request = model.pendingOutgoingPairing {
-                PairingCard(
+                PairingPanel(
                     title: "等待 Mac 确认",
                     subtitle: request.macName,
                     code: request.pairingCode,
@@ -174,7 +160,7 @@ private struct PairingSection: View {
                     secondaryAction: nil
                 )
             } else if let mac = model.discoveredMacs.first(where: { !$0.isPaired }), !model.isStreaming {
-                DiscoveryCard(mac: mac, state: state) {
+                DiscoveryPanel(mac: mac, state: state) {
                     model.pairWithMac(mac)
                 }
             }
@@ -182,7 +168,7 @@ private struct PairingSection: View {
     }
 }
 
-private struct PairingCard: View {
+private struct PairingPanel: View {
     let title: String
     let subtitle: String
     let code: String
@@ -193,51 +179,44 @@ private struct PairingCard: View {
     let secondaryAction: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 Image(systemName: "macbook.and.iphone")
                     .font(.title2)
                     .foregroundStyle(state.accentColor)
-
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.headline)
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
                 }
-
-                Spacer(minLength: 8)
-
+                Spacer()
                 Text(code)
-                    .font(.title3.weight(.bold))
+                    .font(.system(.title3, design: .rounded).weight(.bold))
                     .monospacedDigit()
-                    .foregroundStyle(state.accentColor)
             }
 
             if primaryTitle != nil || secondaryTitle != nil {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     if let secondaryTitle, let secondaryAction {
                         Button(secondaryTitle, action: secondaryAction)
-                            .phoneMicSystemButtonStyle()
-                            .frame(maxWidth: .infinity)
+                            .buttonStyle(.bordered)
                     }
                     if let primaryTitle, let primaryAction {
                         Button(primaryTitle, action: primaryAction)
-                            .phoneMicSystemButtonStyle(prominent: true)
-                            .frame(maxWidth: .infinity)
+                            .buttonStyle(.borderedProminent)
                     }
                 }
                 .controlSize(.large)
             }
         }
         .padding(16)
-        .card()
+        .liquidGlassSurface(cornerRadius: 24, tint: state.accentColor.opacity(0.12))
     }
 }
 
-private struct DiscoveryCard: View {
+private struct DiscoveryPanel: View {
     let mac: PhoneMicDiscoveredMac
     let state: PhoneMicViewState
     let action: () -> Void
@@ -247,103 +226,120 @@ private struct DiscoveryCard: View {
             Image(systemName: "macmini")
                 .font(.title2)
                 .foregroundStyle(state.accentColor)
-
             VStack(alignment: .leading, spacing: 2) {
                 Text("发现 Mac")
                     .font(.headline)
                 Text(mac.name)
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
             }
-
-            Spacer(minLength: 8)
-
+            Spacer()
             Button("信任", action: action)
-                .phoneMicSystemButtonStyle(prominent: true)
-                .controlSize(.large)
+                .buttonStyle(.borderedProminent)
         }
         .padding(16)
-        .card()
+        .liquidGlassSurface(cornerRadius: 24, tint: state.accentColor.opacity(0.12))
     }
 }
 
-// MARK: - Info
-
-private struct InfoCard: View {
+private struct PrimaryMicButton: View {
     let state: PhoneMicViewState
+    let displayTime: TimeInterval
+    let size: CGFloat
+    let action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(spacing: 0) {
-            InfoRow(label: "连接方式", value: state.transportValue, systemImage: state.transportIcon)
-            rowDivider
-            InfoRow(label: "Mac", value: state.clientValue, systemImage: "macmini")
-            rowDivider
-            InfoRow(label: "输入", value: state.inputLabel, systemImage: "mic")
-            rowDivider
-            InfoRow(label: "数据包", value: state.packetValue, systemImage: "arrow.up.arrow.down")
-        }
-        .card()
-    }
+        let pulse = reduceMotion ? 0 : (sin(displayTime * Double.pi * 2 * 1.05) + 1) / 2
+        let activePulse = state.phase == .ready ? 0 : pulse
 
-    private var rowDivider: some View {
-        Rectangle()
-            .fill(Color(uiColor: .separator))
-            .frame(height: 0.5)
-            .padding(.leading, 16)
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(state.accentColor.opacity(0.14))
+                    .frame(width: size * 1.12, height: size * 1.12)
+                    .blur(radius: 22)
+                    .scaleEffect(1 + activePulse * 0.035)
+
+                Circle()
+                    .strokeBorder(state.accentColor.opacity(0.22 + activePulse * 0.16), lineWidth: 1)
+                    .frame(width: size, height: size)
+                    .scaleEffect(1 + activePulse * 0.018)
+
+                VStack(spacing: 14) {
+                    Image(systemName: state.micIcon)
+                        .font(.system(size: size * 0.32, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(state.accentColor)
+
+                    Text(state.buttonTitle)
+                        .font(.system(.title3, design: .rounded).weight(.bold))
+                }
+                .frame(width: size, height: size)
+                .liquidGlassSurface(cornerRadius: size / 2, tint: state.accentColor.opacity(0.14), isCircle: true, interactive: true)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(PhoneMicBouncyButtonStyle(scale: 0.955))
+        .accessibilityLabel(state.buttonTitle)
     }
 }
 
-private struct InfoRow: View {
-    let label: String
-    let value: String
-    let systemImage: String
+private enum ConnectionSummaryStyle {
+    case compact
+    case prominent
+}
+
+private struct ConnectionSummaryCard: View {
+    let state: PhoneMicViewState
+    let style: ConnectionSummaryStyle
 
     var body: some View {
-        HStack(spacing: 12) {
-            Label(label, systemImage: systemImage)
-                .font(.body)
+        VStack(spacing: style == .compact ? 10 : 14) {
+            HStack {
+                SummaryItem(title: "连接方式", value: state.transportValue, icon: state.transportIcon)
+                Divider()
+                SummaryItem(title: "Mac", value: state.clientValue, icon: "macmini")
+            }
 
-            Spacer(minLength: 12)
+            if style == .prominent {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(state.accentColor)
+                        .frame(width: 8, height: 8)
+                    Text(state.headline)
+                        .font(.caption.weight(.semibold))
+                    Spacer()
+                    Text(state.inputLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(16)
+        .liquidGlassSurface(cornerRadius: 24, tint: state.accentColor.opacity(0.10))
+    }
+}
 
-            Text(value)
-                .font(.body)
+private struct SummaryItem: View {
+    let title: String
+    let value: String
+    let icon: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+            Text(value)
+                .font(.system(.headline, design: .rounded).weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
     }
 }
-
-private extension View {
-    func card() -> some View {
-        background(
-            Color(uiColor: .secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-        )
-    }
-
-    @ViewBuilder
-    func phoneMicSystemButtonStyle(prominent: Bool = false) -> some View {
-        if #available(iOS 26.0, *) {
-            if prominent {
-                self.buttonStyle(.glassProminent)
-            } else {
-                self.buttonStyle(.glass)
-            }
-        } else {
-            if prominent {
-                self.buttonStyle(.borderedProminent)
-            } else {
-                self.buttonStyle(.bordered)
-            }
-        }
-    }
-}
-
-// MARK: - Settings
 
 private struct PhoneMicSettingsView: View {
     @ObservedObject var model: PhoneMicIOSModel
@@ -431,91 +427,138 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
+    @Namespace private var selectionNamespace
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        PhoneMicSegmentedControl(
-            options: options,
-            selection: $selection,
-            title: title
-        )
-        .frame(maxWidth: .infinity)
-        .frame(height: 54)
+        Group {
+            if #available(iOS 26.0, *) {
+                GlassEffectContainer(spacing: 18) {
+                    segmentedContent
+                        .background {
+                            RoundedRectangle(cornerRadius: 25, style: .continuous)
+                                .fill(containerFill)
+                        }
+                        .glassEffect(.regular.tint(glassTint).interactive(), in: .rect(cornerRadius: 25))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 25, style: .continuous)
+                                .strokeBorder(containerBorder, lineWidth: 1)
+                        }
+                        .shadow(color: containerShadowColor, radius: 16, x: 0, y: 8)
+                }
+            } else {
+                segmentedContent
+                    .background {
+                        RoundedRectangle(cornerRadius: 25, style: .continuous)
+                            .fill(containerFill)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 25, style: .continuous)
+                            .strokeBorder(containerBorder, lineWidth: 1)
+                    }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+
+    private var segmentedContent: some View {
+        ZStack {
+            HStack(spacing: 0) {
+                ForEach(options) { option in
+                    ZStack {
+                        if selection == option {
+                            selectedCapsule
+                                .matchedGeometryEffect(id: "selected-choice", in: selectionNamespace)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 54)
+                }
+            }
+            .padding(4)
+            .allowsHitTesting(false)
+
+            HStack(spacing: 0) {
+                ForEach(options) { option in
+                    Button {
+                        withAnimation(.spring(response: 0.30, dampingFraction: 0.72, blendDuration: 0.06)) {
+                            selection = option
+                        }
+                    } label: {
+                        Text(title(option))
+                            .font(.system(size: 17, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                            .foregroundStyle(selection == option ? selectedTextColor : inactiveTextColor)
+                            .frame(maxWidth: .infinity, minHeight: 54)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PhoneMicBouncyButtonStyle(scale: 0.94))
+                    .accessibilityAddTraits(selection == option ? .isSelected : [])
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var selectedCapsule: some View {
+        let shape = RoundedRectangle(cornerRadius: 21, style: .continuous)
+
+        shape
+            .fill(selectedFill)
+            .overlay {
+                shape
+                    .strokeBorder(selectedBorder, lineWidth: 1)
+            }
+            .shadow(color: selectedShadowColor, radius: 11, x: 0, y: 5)
+    }
+
+    private var selectedFill: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.14)
+            : Color.black.opacity(0.065)
+    }
+
+    private var containerFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.46)
+    }
+
+    private var containerBorder: Color {
+        colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.070)
+    }
+
+    private var glassTint: Color {
+        colorScheme == .dark ? .white.opacity(0.05) : .white.opacity(0.14)
+    }
+
+    private var selectedBorder: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.64)
+    }
+
+    private var selectedTextColor: Color {
+        colorScheme == .dark ? .white : .primary
+    }
+
+    private var inactiveTextColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.66) : Color.black.opacity(0.48)
+    }
+
+    private var selectedShadowColor: Color {
+        colorScheme == .dark ? .black.opacity(0.30) : .black.opacity(0.075)
+    }
+
+    private var containerShadowColor: Color {
+        colorScheme == .dark ? .black.opacity(0.18) : .black.opacity(0.065)
     }
 }
 
-private struct PhoneMicSegmentedControl<Option: Hashable & Identifiable>: UIViewRepresentable {
-    let options: [Option]
-    @Binding var selection: Option
-    let title: (Option) -> String
+private struct PhoneMicBouncyButtonStyle: ButtonStyle {
+    let scale: CGFloat
 
-    func makeUIView(context: Context) -> UISegmentedControl {
-        let control = UISegmentedControl(items: options.map(title))
-        control.addTarget(
-            context.coordinator,
-            action: #selector(Coordinator.selectionChanged(_:)),
-            for: .valueChanged
-        )
-        applyAppearance(to: control)
-        applySelection(to: control)
-        return control
-    }
-
-    func updateUIView(_ control: UISegmentedControl, context: Context) {
-        context.coordinator.options = options
-        context.coordinator.selection = $selection
-
-        if control.numberOfSegments != options.count {
-            control.removeAllSegments()
-            for (index, option) in options.enumerated() {
-                control.insertSegment(withTitle: title(option), at: index, animated: false)
-            }
-        } else {
-            for (index, option) in options.enumerated() {
-                control.setTitle(title(option), forSegmentAt: index)
-            }
-        }
-
-        applyAppearance(to: control)
-        applySelection(to: control)
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(options: options, selection: $selection)
-    }
-
-    private func applySelection(to control: UISegmentedControl) {
-        control.selectedSegmentIndex = options.firstIndex(of: selection) ?? UISegmentedControl.noSegment
-    }
-
-    private func applyAppearance(to control: UISegmentedControl) {
-        control.selectedSegmentTintColor = nil
-        control.backgroundColor = nil
-        control.setTitleTextAttributes(textAttributes(color: .black), for: .normal)
-        control.setTitleTextAttributes(textAttributes(color: .systemBlue), for: .selected)
-    }
-
-    private func textAttributes(color: UIColor) -> [NSAttributedString.Key: Any] {
-        [
-            .foregroundColor: color,
-            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
-        ]
-    }
-
-    final class Coordinator: NSObject {
-        var options: [Option]
-        var selection: Binding<Option>
-
-        init(options: [Option], selection: Binding<Option>) {
-            self.options = options
-            self.selection = selection
-        }
-
-        @objc
-        func selectionChanged(_ sender: UISegmentedControl) {
-            guard sender.selectedSegmentIndex >= 0,
-                  sender.selectedSegmentIndex < options.count
-            else { return }
-            selection.wrappedValue = options[sender.selectedSegmentIndex]
-        }
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.58, blendDuration: 0.02), value: configuration.isPressed)
     }
 }
 
@@ -551,7 +594,39 @@ private struct PhoneMicThemeStyleApplier: UIViewControllerRepresentable {
     }
 }
 
-// MARK: - State
+private struct PhoneMicBackground: View {
+    let state: PhoneMicViewState
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        LinearGradient(
+            colors: backgroundColors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay(alignment: .topTrailing) {
+            Circle()
+                .fill(state.accentColor.opacity(colorScheme == .dark ? 0.18 : 0.16))
+                .frame(width: 260, height: 260)
+                .blur(radius: 54)
+                .offset(x: 80, y: -90)
+        }
+    }
+
+    private var backgroundColors: [Color] {
+        if colorScheme == .dark {
+            return [
+                Color(red: 0.08, green: 0.09, blue: 0.11),
+                Color(red: 0.12, green: 0.13, blue: 0.16),
+            ]
+        }
+
+        return [
+            Color(uiColor: .systemGroupedBackground),
+            Color(uiColor: .secondarySystemGroupedBackground),
+        ]
+    }
+}
 
 private enum PhoneMicConnectionPhase {
     case ready
@@ -564,16 +639,12 @@ private struct PhoneMicViewState {
     let clientText: String
     let transportText: String
     let inputMode: MicrophoneInputMode
-    let packetCount: UInt64
-    let detailText: String
 
     @MainActor
     init(model: PhoneMicIOSModel) {
         clientText = model.clientText
         transportText = model.latestStatus?.transport.displayName ?? model.transportText
         inputMode = model.inputMode
-        packetCount = model.packetCount
-        detailText = model.statusText
         if !model.isStreaming {
             phase = .ready
         } else if model.clientText == "Waiting" {
@@ -586,11 +657,22 @@ private struct PhoneMicViewState {
     var accentColor: Color {
         switch phase {
         case .ready:
-            return .accentColor
+            return .blue
         case .waiting:
             return .orange
         case .sending:
             return .green
+        }
+    }
+
+    var headline: String {
+        switch phase {
+        case .ready:
+            return "就绪"
+        case .waiting:
+            return "等待 Mac"
+        case .sending:
+            return "正在发送"
         }
     }
 
@@ -616,6 +698,17 @@ private struct PhoneMicViewState {
         }
     }
 
+    var micIcon: String {
+        switch phase {
+        case .ready:
+            return "mic.circle"
+        case .waiting:
+            return "dot.radiowaves.left.and.right"
+        case .sending:
+            return "mic.circle.fill"
+        }
+    }
+
     var buttonTitle: String {
         switch phase {
         case .ready:
@@ -625,25 +718,13 @@ private struct PhoneMicViewState {
         }
     }
 
-    var buttonSystemImage: String {
+    var buttonIcon: String {
         switch phase {
         case .ready:
-            return "mic.fill"
+            return "play.fill"
         case .waiting, .sending:
             return "stop.fill"
         }
-    }
-
-    var packetValue: String {
-        var digits = String(packetCount)
-        var grouped = ""
-
-        while digits.count > 3 {
-            grouped = "," + String(digits.suffix(3)) + grouped
-            digits = String(digits.dropLast(3))
-        }
-
-        return digits + grouped
     }
 
     var inputLabel: String {
@@ -652,6 +733,14 @@ private struct PhoneMicViewState {
 
     var clientValue: String {
         clientText == "Waiting" ? "等待中" : clientText
+    }
+
+    var transportKindTitle: String {
+        normalizedTransport == "USB" ? "有线" : "无线"
+    }
+
+    var transportDetail: String {
+        normalizedTransport
     }
 
     var transportValue: String {
@@ -686,6 +775,49 @@ private enum PhoneMicAppInfo {
 
     private static func value(for key: String) -> String? {
         Bundle.main.object(forInfoDictionaryKey: key) as? String
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func liquidGlassSurface(cornerRadius: CGFloat, tint: Color = .clear, isCircle: Bool = false, interactive: Bool = false) -> some View {
+        if #available(iOS 26.0, *) {
+            if isCircle {
+                if interactive {
+                    self
+                        .glassEffect(.regular.tint(tint).interactive(), in: .circle)
+                } else {
+                    self
+                        .glassEffect(.regular.tint(tint), in: .circle)
+                }
+            } else {
+                if interactive {
+                    self
+                        .glassEffect(.regular.tint(tint).interactive(), in: .rect(cornerRadius: cornerRadius))
+                } else {
+                    self
+                        .glassEffect(.regular.tint(tint), in: .rect(cornerRadius: cornerRadius))
+                }
+            }
+        } else {
+            if isCircle {
+                self
+                    .background(.ultraThinMaterial, in: Circle())
+            } else {
+                self
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            }
+        }
+    }
+
+    @ViewBuilder
+    func choiceGlassSurface() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 23))
+        } else {
+            self
+        }
     }
 }
 
