@@ -427,7 +427,71 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
+    @Namespace private var glassNamespace
+
     var body: some View {
+        if #available(iOS 26.0, *) {
+            liquidGlassPicker
+        } else {
+            systemSegmentedPicker
+        }
+    }
+
+    @available(iOS 26.0, *)
+    private var liquidGlassPicker: some View {
+        ZStack {
+            GlassEffectContainer(spacing: 18) {
+                ZStack {
+                    Color.clear
+                        .frame(height: 62)
+                        .glassEffect(.regular.interactive(), in: .capsule)
+                        .glassEffectID("settings-choice-background", in: glassNamespace)
+
+                    HStack(spacing: 0) {
+                        ForEach(options) { option in
+                            ZStack {
+                                if selection == option {
+                                    Color.clear
+                                        .frame(height: 54)
+                                        .glassEffect(.regular.interactive(), in: .capsule)
+                                        .glassEffectID("settings-choice-selection", in: glassNamespace)
+                                        .glassEffectTransition(.matchedGeometry)
+                                        .transition(.identity)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 54)
+                        }
+                    }
+                    .padding(4)
+                }
+            }
+
+            HStack(spacing: 0) {
+                ForEach(options) { option in
+                    Button {
+                        withAnimation(.smooth(duration: 0.24)) {
+                            selection = option
+                        }
+                    } label: {
+                        Text(title(option))
+                            .font(.system(size: 17, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                            .foregroundStyle(selection == option ? Color.blue : Color.primary)
+                            .frame(maxWidth: .infinity, minHeight: 54)
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selection == option ? .isSelected : [])
+                }
+            }
+            .padding(4)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 62)
+    }
+
+    private var systemSegmentedPicker: some View {
         Picker("", selection: $selection) {
             ForEach(options) { option in
                 Text(title(option))
