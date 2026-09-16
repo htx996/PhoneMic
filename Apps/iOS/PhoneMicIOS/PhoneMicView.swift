@@ -434,7 +434,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
             title: title
         )
         .frame(maxWidth: .infinity)
-        .frame(height: 54)
+        .frame(height: 62)
     }
 }
 
@@ -476,6 +476,10 @@ private struct PhoneMicSegmentedControl<Option: Hashable & Identifiable>: UIView
 
     func makeCoordinator() -> Coordinator {
         Coordinator(options: options, selection: $selection)
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UISegmentedControl, context: Context) -> CGSize? {
+        CGSize(width: proposal.width ?? uiView.intrinsicContentSize.width, height: 62)
     }
 
     private func applySelection(to control: UISegmentedControl) {
