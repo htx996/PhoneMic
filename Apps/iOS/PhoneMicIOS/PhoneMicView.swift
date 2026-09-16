@@ -427,93 +427,84 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        PhoneMicSegmentedControl(
-            options: options,
-            selection: $selection,
-            title: title
-        )
+        Group {
+            if #available(iOS 26.0, *) {
+                GlassEffectContainer(spacing: 0) {
+                    content
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 31))
+                }
+            } else {
+                content
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 31, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 31, style: .continuous)
+                            .strokeBorder(fallbackBorder, lineWidth: 1)
+                    }
+            }
+        }
         .frame(maxWidth: .infinity)
         .frame(height: 62)
     }
-}
 
-private struct PhoneMicSegmentedControl<Option: Hashable & Identifiable>: UIViewRepresentable {
-    let options: [Option]
-    @Binding var selection: Option
-    let title: (Option) -> String
+    private var content: some View {
+        ZStack {
+            HStack(spacing: 0) {
+                ForEach(options) { option in
+                    Group {
+                        if selection == option {
+                            selectedSegment
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 54)
+                }
+            }
+            .padding(4)
+            .allowsHitTesting(false)
 
-    func makeUIView(context: Context) -> UISegmentedControl {
-        let control = UISegmentedControl(items: options.map(title))
-        control.addTarget(
-            context.coordinator,
-            action: #selector(Coordinator.selectionChanged(_:)),
-            for: .valueChanged
-        )
-        applyAppearance(to: control)
-        applySelection(to: control)
-        return control
+            HStack(spacing: 0) {
+                ForEach(options) { option in
+                    Button {
+                        selection = option
+                    } label: {
+                        Text(title(option))
+                            .font(.system(size: 17, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                            .foregroundStyle(selection == option ? Color.blue : Color.black)
+                            .frame(maxWidth: .infinity, minHeight: 54)
+                            .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selection == option ? .isSelected : [])
+                }
+            }
+        }
+        .frame(height: 62)
+        .clipShape(RoundedRectangle(cornerRadius: 31, style: .continuous))
     }
 
-    func updateUIView(_ control: UISegmentedControl, context: Context) {
-        context.coordinator.options = options
-        context.coordinator.selection = $selection
+    @ViewBuilder
+    private var selectedSegment: some View {
+        let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
 
-        if control.numberOfSegments != options.count {
-            control.removeAllSegments()
-            for (index, option) in options.enumerated() {
-                control.insertSegment(withTitle: title(option), at: index, animated: false)
-            }
+        if #available(iOS 26.0, *) {
+            shape
+                .fill(Color.clear)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 27))
         } else {
-            for (index, option) in options.enumerated() {
-                control.setTitle(title(option), forSegmentAt: index)
-            }
+            shape
+                .fill(colorScheme == .dark ? Color.white.opacity(0.14) : Color.white.opacity(0.78))
+                .shadow(color: colorScheme == .dark ? .black.opacity(0.22) : .black.opacity(0.06), radius: 8, x: 0, y: 4)
         }
-
-        applyAppearance(to: control)
-        applySelection(to: control)
     }
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(options: options, selection: $selection)
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UISegmentedControl, context: Context) -> CGSize? {
-        CGSize(width: proposal.width ?? uiView.intrinsicContentSize.width, height: 62)
-    }
-
-    private func applySelection(to control: UISegmentedControl) {
-        control.selectedSegmentIndex = options.firstIndex(of: selection) ?? UISegmentedControl.noSegment
-    }
-
-    private func applyAppearance(to control: UISegmentedControl) {
-        control.setTitleTextAttributes(textAttributes(color: .black), for: .normal)
-        control.setTitleTextAttributes(textAttributes(color: .systemBlue), for: .selected)
-    }
-
-    private func textAttributes(color: UIColor) -> [NSAttributedString.Key: Any] {
-        [
-            .foregroundColor: color,
-            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
-        ]
-    }
-
-    final class Coordinator: NSObject {
-        var options: [Option]
-        var selection: Binding<Option>
-
-        init(options: [Option], selection: Binding<Option>) {
-            self.options = options
-            self.selection = selection
-        }
-
-        @objc
-        func selectionChanged(_ sender: UISegmentedControl) {
-            guard sender.selectedSegmentIndex >= 0,
-                  sender.selectedSegmentIndex < options.count
-            else { return }
-            selection.wrappedValue = options[sender.selectedSegmentIndex]
-        }
+    private var fallbackBorder: Color {
+        colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.07)
     }
 }
 
