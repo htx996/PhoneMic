@@ -468,7 +468,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
                                 .font(.system(size: 17, weight: .semibold))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.82)
-                                .foregroundStyle(selection == option ? Color.blue : Color.black)
+                                .foregroundStyle(titleColor(for: option))
                         }
                         .frame(maxWidth: .infinity, minHeight: 54)
                         .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
@@ -501,6 +501,14 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
 
     private var fallbackBorder: Color {
         colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.07)
+    }
+
+    private func titleColor(for option: Option) -> Color {
+        if selection == option {
+            return .blue
+        }
+
+        return colorScheme == .dark ? .white : .black
     }
 }
 
