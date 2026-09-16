@@ -427,87 +427,8 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
-    @Namespace private var glassNamespace
-
     var body: some View {
-        if #available(iOS 26.0, *) {
-            liquidGlassPicker
-        } else {
-            systemSegmentedPicker
-        }
-    }
-
-    @available(iOS 26.0, *)
-    private var liquidGlassPicker: some View {
-        ZStack {
-            liquidGlassSurfaces
-
-            HStack(spacing: 0) {
-                ForEach(options) { option in
-                    Button {
-                        select(option)
-                    } label: {
-                        choiceLabel(for: option, isSelected: selection == option)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(selection == option ? .isSelected : [])
-                }
-            }
-            .padding(4)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 62)
-    }
-
-    @available(iOS 26.0, *)
-    private var liquidGlassSurfaces: some View {
-        GlassEffectContainer(spacing: 18) {
-            ZStack {
-                Color.clear
-                    .frame(height: 62)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    .glassEffectID("settings-choice-background", in: glassNamespace)
-
-                HStack(spacing: 0) {
-                    ForEach(options) { option in
-                        ZStack {
-                            if selection == option {
-                                Button {} label: {
-                                    Color.clear
-                                        .frame(height: 54)
-                                }
-                                .buttonStyle(.glass)
-                                .buttonBorderShape(.capsule)
-                                .glassEffectID("settings-choice-selection", in: glassNamespace)
-                                .glassEffectTransition(.matchedGeometry)
-                                .transition(.identity)
-                                .accessibilityHidden(true)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 54)
-                    }
-                }
-                .padding(4)
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    private func select(_ option: Option) {
-        withAnimation(.bouncy) {
-            selection = option
-        }
-    }
-
-    private func choiceLabel(for option: Option, isSelected: Bool) -> some View {
-        Text(title(option))
-            .font(.system(size: 17, weight: .semibold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
-            .foregroundStyle(isSelected ? Color.blue : Color.primary)
-            .frame(maxWidth: .infinity, minHeight: 54)
-            .contentShape(Capsule())
+        systemSegmentedPicker
     }
 
     private var systemSegmentedPicker: some View {
