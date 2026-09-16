@@ -427,6 +427,8 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
+    @Namespace private var glassNamespace
+
     var body: some View {
         if #available(iOS 26.0, *) {
             liquidGlassPicker
@@ -437,48 +439,74 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
 
     @available(iOS 26.0, *)
     private var liquidGlassPicker: some View {
-        GlassEffectContainer(spacing: 8) {
+        ZStack {
+            liquidGlassSurfaces
+
             HStack(spacing: 0) {
                 ForEach(options) { option in
-                    choiceButton(for: option)
+                    Button {
+                        select(option)
+                    } label: {
+                        choiceLabel(for: option, isSelected: selection == option)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selection == option ? .isSelected : [])
                 }
             }
             .padding(4)
-            .frame(maxWidth: .infinity)
-            .frame(height: 62)
-            .glassEffect(.regular.interactive(), in: .capsule)
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: 62)
     }
 
     @available(iOS 26.0, *)
-    private func choiceButton(for option: Option) -> some View {
-        let isSelected = selection == option
+    private var liquidGlassSurfaces: some View {
+        GlassEffectContainer(spacing: 8) {
+            ZStack {
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 62)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .glassEffectID("settings-choice-background", in: glassNamespace)
 
-        let button = Button {
-            withAnimation(.bouncy) {
-                selection = option
+                HStack(spacing: 0) {
+                    ForEach(options) { option in
+                        ZStack {
+                            if selection == option {
+                                Color.clear
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 54)
+                                    .glassEffect(.regular.interactive(), in: .capsule)
+                                    .glassEffectID("settings-choice-selection", in: glassNamespace)
+                                    .glassEffectTransition(.matchedGeometry)
+                                    .transition(.identity)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 54)
+                    }
+                }
+                .padding(4)
             }
-        } label: {
-            Text(title(option))
-                .font(.system(size: 17, weight: .semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
-                .foregroundStyle(isSelected ? Color.blue : Color.primary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .contentShape(Capsule())
         }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
 
-        return Group {
-            if isSelected {
-                button
-                    .buttonStyle(.glass)
-            } else {
-                button
-                    .buttonStyle(.plain)
-            }
+    private func select(_ option: Option) {
+        withAnimation(.smooth(duration: 0.28)) {
+            selection = option
         }
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func choiceLabel(for option: Option, isSelected: Bool) -> some View {
+        Text(title(option))
+            .font(.system(size: 17, weight: .semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .foregroundStyle(isSelected ? Color.blue : Color.primary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .contentShape(Capsule())
     }
 
     private var systemSegmentedPicker: some View {
