@@ -427,117 +427,66 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
-    @Namespace private var selectionNamespace
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                GlassEffectContainer(spacing: 0) {
-                    content
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 31))
-                }
-            } else {
-                content
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 31, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 31, style: .continuous)
-                            .strokeBorder(fallbackBorder, lineWidth: 1)
-                    }
-            }
-        }
+        PhoneMicNativeSegmentedControl(options: options, selection: $selection, title: title)
         .frame(maxWidth: .infinity)
-        .frame(height: 62)
-    }
-
-    private var content: some View {
-        ZStack {
-            HStack(spacing: 0) {
-                ForEach(options) { option in
-                    segmentButton(for: option)
-                }
-            }
-            .padding(4)
-        }
-        .frame(height: 62)
-        .clipShape(RoundedRectangle(cornerRadius: 31, style: .continuous))
-    }
-
-    @ViewBuilder
-    private func segmentButton(for option: Option) -> some View {
-        let isSelected = selection == option
-
-        if #available(iOS 26.0, *), isSelected {
-            Button {
-                select(option)
-            } label: {
-                titleLabel(for: option)
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                    .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
-            }
-            .buttonStyle(.glass)
-            .buttonBorderShape(.roundedRectangle(radius: 27))
-            .glassEffectID("selected-choice", in: selectionNamespace)
-            .accessibilityAddTraits(.isSelected)
-        } else {
-            Button {
-                select(option)
-            } label: {
-                ZStack {
-                    if isSelected {
-                        fallbackSelectedSegment
-                    }
-
-                    titleLabel(for: option)
-                }
-                .frame(maxWidth: .infinity, minHeight: 54)
-                .contentShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
-            }
-            .buttonStyle(PhoneMicChoiceButtonStyle())
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
-        }
-    }
-
-    private func select(_ option: Option) {
-        withAnimation(.interactiveSpring) {
-            selection = option
-        }
-    }
-
-    private func titleLabel(for option: Option) -> some View {
-        Text(title(option))
-            .font(.system(size: 17, weight: .semibold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
-            .foregroundStyle(titleColor(for: option))
-    }
-
-    private var fallbackSelectedSegment: some View {
-        RoundedRectangle(cornerRadius: 27, style: .continuous)
-            .fill(colorScheme == .dark ? Color.white.opacity(0.14) : Color.white.opacity(0.78))
-            .shadow(color: colorScheme == .dark ? .black.opacity(0.22) : .black.opacity(0.06), radius: 8, x: 0, y: 4)
-    }
-
-    private var fallbackBorder: Color {
-        colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.07)
-    }
-
-    private func titleColor(for option: Option) -> Color {
-        if selection == option {
-            return .blue
-        }
-
-        return colorScheme == .dark ? .white : .black
+        .frame(height: 54)
     }
 }
 
-private struct PhoneMicChoiceButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+private struct PhoneMicNativeSegmentedControl<Option: Hashable & Identifiable>: UIViewRepresentable {
+    let options: [Option]
+    @Binding var selection: Option
+    let title: (Option) -> String
 
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
-            .animation(.interactiveSpring, value: configuration.isPressed)
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> UISegmentedControl {
+        let control = UISegmentedControl(items: options.map(title))
+        control.apportionsSegmentWidthsByContent = false
+        control.addTarget(context.coordinator, action: #selector(Coordinator.selectionChanged(_:)), for: .valueChanged)
+        applyConfiguration(to: control)
+        return control
+    }
+
+    func updateUIView(_ control: UISegmentedControl, context: Context) {
+        context.coordinator.parent = self
+
+        if control.numberOfSegments != options.count {
+            control.removeAllSegments()
+            for (index, option) in options.enumerated() {
+                control.insertSegment(withTitle: title(option), at: index, animated: false)
+            }
+        } else {
+            for (index, option) in options.enumerated() {
+                control.setTitle(title(option), forSegmentAt: index)
+            }
+        }
+
+        applyConfiguration(to: control)
+    }
+
+    private func applyConfiguration(to control: UISegmentedControl) {
+        let font = UIFont.systemFont(ofSize: 17, weight: .semibold)
+        control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor.label], for: .normal)
+        control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor.systemBlue], for: .selected)
+        control.selectedSegmentIndex = options.firstIndex(of: selection) ?? UISegmentedControl.noSegment
+    }
+
+    final class Coordinator: NSObject {
+        var parent: PhoneMicNativeSegmentedControl
+
+        init(parent: PhoneMicNativeSegmentedControl) {
+            self.parent = parent
+        }
+
+        @objc func selectionChanged(_ sender: UISegmentedControl) {
+            let index = sender.selectedSegmentIndex
+            guard parent.options.indices.contains(index) else { return }
+            parent.selection = parent.options[index]
+        }
     }
 }
 
