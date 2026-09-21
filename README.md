@@ -1,6 +1,6 @@
 # PhoneMic
 
-            <img width="344" height="288" alt="截屏2026-09-21 15 14 49" src="https://github.com/user-attachments/assets/77bc1b8f-7a67-47c3-9fb8-9e6f01a3132a" />
+<img width="344" height="288" alt="截屏2026-09-21 15 14 49" src="https://github.com/user-attachments/assets/77bc1b8f-7a67-47c3-9fb8-9e6f01a3132a" />
 
 PhoneMic is a native iPhone + macOS app that lets an iPhone act as a Mac microphone over local Wi-Fi, with the Mac-side USB proxy integration point prepared for a bundled helper.
 
