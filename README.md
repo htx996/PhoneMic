@@ -1,4 +1,4 @@
-# PhoneMic
+<h1 align="center">PhoneMic</h1>
 
 <p align="center">
   <img width="344" height="288"
