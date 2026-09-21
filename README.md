@@ -8,22 +8,6 @@
 
 PhoneMic is a native iPhone + macOS app that lets an iPhone act as a Mac microphone over local Wi-Fi, with the Mac-side USB proxy integration point prepared for a bundled helper.
 
-Current MVP path:
-
-```text
-iPhone microphone
--> AVAudioSession + AVAudioEngine
--> 48 kHz mono Float32 PCM packets
--> Network.framework TCP connection discovered by Bonjour or forwarded by the bundled USB proxy
--> PhoneMic pairing / authenticated stream and status handshake
--> macOS menu bar receiver
--> jitter buffer / ring buffer
--> BlackHole 2ch output
--> BlackHole input automatically selected as the system/app microphone
-```
-
-The custom Core Audio HAL driver is intentionally reserved behind `MicrophoneOutputEngine` for phase 2. The first runnable version uses BlackHole because HAL driver signing, notarization, installation, and `coreaudiod` lifecycle work can otherwise block the MVP.
-
 ## Project Structure
 
 - `Package.swift` - SwiftPM package for shared code, tests, and the macOS menu bar app.
