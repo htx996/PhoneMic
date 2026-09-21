@@ -174,11 +174,11 @@ The Mac app bundles a `phonemic-usbproxy` helper and can manage it from the menu
 1. Start the Mac app.
 2. Start streaming from the iPhone app.
 3. Pair the iPhone the first time: click `Pair` on Mac and confirm the matching code on iPhone.
-4. Confirm the Mac menu bar status shows `正在发送到 Mac` and `Output` is `BlackHole 2ch`.
+4. Confirm the Mac menu bar status shows `Sending to Mac` and `Output` is `BlackHole 2ch`.
 5. Open the app that needs the microphone.
 6. Select `BlackHole 2ch` as that app's microphone/input device.
 
-PhoneMic now tries to select `BlackHole 2ch` as the global macOS input automatically on launch. If it switched from another input, the menu bar panel provides `恢复原输入`.
+PhoneMic now tries to select `BlackHole 2ch` as the global macOS input automatically on launch. If it switched from another input, the menu bar panel provides `Restore original input`.
 
 If there is no sound in WeChat, Discord, Zoom, or another app, first check the
 Mac menu bar status:
@@ -202,11 +202,11 @@ Mac menu bar status:
 
 PhoneMic includes three transport presets in the Mac menu bar panel:
 
-- `自动` chooses a lower prebuffer for USB and a safer one for Wi-Fi.
-- `低延迟` keeps prebuffer low for close-range use.
-- `稳定` raises prebuffer for noisy networks.
+- `Auto` chooses a lower prebuffer for USB and a safer one for Wi-Fi.
+- `Low latency` keeps prebuffer low for close-range use.
+- `Stability` raises prebuffer for noisy networks.
 
-The `自动校准` button listens to the current stream for a few seconds and adjusts gain/voice processing toward an audible, non-clipping level. PhoneMic also applies lightweight clipping and weak-voice protection while running.
+The `Automatic calibration` button listens to the current stream for a few seconds and adjusts gain/voice processing toward an audible, non-clipping level. PhoneMic also applies lightweight clipping and weak-voice protection while running.
 
 ## Privacy
 
