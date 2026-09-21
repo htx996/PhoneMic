@@ -142,33 +142,6 @@ For a re-signing source IPA that avoids Debug-only dylibs:
 
 The output `outputs/PhoneMicIOS-resignable-release.ipa` is unsigned. It is for re-signing workflows only, not direct installation.
 
-## iPhone Launch Crash Fix
-
-If an earlier build opened and immediately quit on iPhone, rebuild with the current project. The root cause was the `PhoneMicCore.framework` install name: it was emitted as `/Library/Frameworks/PhoneMicCore.framework/PhoneMicCore`, which iOS cannot load from inside an app bundle. The framework target now uses `@rpath/PhoneMicCore.framework/PhoneMicCore`, matching the embedded copy in `PhoneMicIOS.app/Frameworks`.
-
-In Xcode, use Product > Clean Build Folder once, then run `PhoneMicIOS` on the iPhone again.
-
-## App Icon
-
-Generated icon candidates are in `outputs/icon-options/`:
-
-- `PhoneMic-Icon-A.png` - bright blue glass microphone with connection orbit.
-- `PhoneMic-Icon-B.png` - darker professional microphone mark.
-- `PhoneMic-Icon-C.png` - microphone with subtle phone-to-desktop connection.
-- `PhoneMic-Icon-D.png` - abstract microphone and sound rings.
-- `PhoneMic-Icon-C-Flat.png` - earlier flat illustration redesign kept as a design archive.
-- `PhoneMic-Icon-Preview.png` - 2x2 comparison sheet.
-
-The Xcode project currently uses the AppIcon images in `Apps/iOS/PhoneMicIOS/Assets.xcassets/AppIcon.appiconset`.
-Run `swift script/generate_macos_icon.swift` to regenerate both the macOS `.icns` and the matching iOS AppIcon PNGs from the same blue microphone artwork.
-
-The iPhone advertises `_phonemic._tcp` using Bonjour on a fixed PhoneMic audio port. The Mac app discovers it and connects automatically.
-The Mac menu bar app only auto-connects to paired iPhones. If an unpaired iPhone is visible, click `Pair` in the Mac panel, confirm the 6-digit code on iPhone, and PhoneMic will remember the trusted relationship. If more than one PhoneMic iPhone is visible on the local network, use the `Device` menu in the Mac panel to choose the intended phone.
-
-Pairing secrets are stored in Keychain on both Mac and iPhone. Older development builds that stored trusted devices in preferences are migrated automatically on first launch.
-
-The Mac app bundles a `phonemic-usbproxy` helper and can manage it from the menu bar panel. The helper talks to macOS `usbmuxd` directly, so wired mode does not require Homebrew, `iproxy`, or libimobiledevice.
-
 ## Use as a System Microphone
 
 1. Start the Mac app.
