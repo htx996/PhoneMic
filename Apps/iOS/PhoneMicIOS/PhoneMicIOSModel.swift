@@ -44,37 +44,11 @@ enum PhoneMicThemePreference: String, CaseIterable, Identifiable {
     }
 }
 
-enum PhoneMicDeviceNameMode: String, CaseIterable, Identifiable {
-    case automatic
-    case custom
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .automatic:
-            return "自动"
-        case .custom:
-            return "自定义"
-        }
-    }
-}
-
 @MainActor
 final class PhoneMicIOSModel: ObservableObject {
     @Published var themePreference: PhoneMicThemePreference {
         didSet {
             UserDefaults.standard.set(themePreference.rawValue, forKey: Self.themePreferenceDefaultsKey)
-        }
-    }
-    @Published var deviceNameMode: PhoneMicDeviceNameMode {
-        didSet {
-            guard deviceNameMode != oldValue else { return }
-            if deviceNameMode == .automatic {
-                restoreAutomaticDeviceName()
-            } else {
-                streamer.setDeviceDisplayName(deviceDisplayName)
-            }
         }
     }
     @Published var isStreaming = false
@@ -86,13 +60,7 @@ final class PhoneMicIOSModel: ObservableObject {
     @Published var discoveredMacs: [PhoneMicDiscoveredMac] = []
     @Published var pendingOutgoingPairing: PhoneMicPendingPairing?
     @Published var pendingPairingRequest: PhoneMicPairingRequest?
-    @Published var deviceDisplayName: String {
-        didSet {
-            if deviceNameMode == .custom {
-                streamer.setDeviceDisplayName(deviceDisplayName)
-            }
-        }
-    }
+    @Published private(set) var deviceDisplayName: String
     @Published var inputMode: MicrophoneInputMode = .builtIn {
         didSet {
             streamer.setInputMode(inputMode)
@@ -113,13 +81,7 @@ final class PhoneMicIOSModel: ObservableObject {
             themePreference = .system
         }
 
-        if MicrophoneStreamer.hasCustomDeviceDisplayName() {
-            deviceNameMode = .custom
-            deviceDisplayName = MicrophoneStreamer.savedDeviceDisplayName()
-        } else {
-            deviceNameMode = .automatic
-            deviceDisplayName = MicrophoneStreamer.systemDeviceDisplayName()
-        }
+        deviceDisplayName = MicrophoneStreamer.savedDeviceDisplayName()
 
         streamer.onEvent = { [weak self] event in
             Task { @MainActor in
@@ -194,25 +156,18 @@ final class PhoneMicIOSModel: ObservableObject {
         streamer.forgetTrustedMacs()
     }
 
-    func restoreAutomaticDeviceName() {
-        deviceDisplayName = MicrophoneStreamer.systemDeviceDisplayName()
-        streamer.useAutomaticDeviceDisplayName()
-    }
+    func saveDeviceDisplayName(_ name: String) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedName.isEmpty {
+            deviceDisplayName = MicrophoneStreamer.deviceModelDisplayName()
+            streamer.useAutomaticDeviceDisplayName()
+            return
+        }
 
-    var systemDeviceDisplayName: String {
-        MicrophoneStreamer.systemDeviceDisplayName()
-    }
-
-    var rawSystemDeviceDisplayName: String {
-        MicrophoneStreamer.rawSystemDeviceDisplayName()
-    }
-
-    var canReadUserAssignedDeviceName: Bool {
-        MicrophoneStreamer.canReadUserAssignedDeviceName()
-    }
-
-    var deviceModelDisplayName: String {
-        MicrophoneStreamer.deviceModelDisplayName()
+        let nextName = String(trimmedName.prefix(48))
+        guard nextName != deviceDisplayName else { return }
+        deviceDisplayName = nextName
+        streamer.setDeviceDisplayName(nextName)
     }
 
     private func handle(_ event: MicrophoneStreamer.Event) {

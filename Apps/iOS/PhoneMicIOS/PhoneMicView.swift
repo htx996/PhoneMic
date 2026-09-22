@@ -4,8 +4,27 @@ import UIKit
 
 struct PhoneMicView: View {
     @StateObject private var model = PhoneMicIOSModel()
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsSettings = false
+
+    var body: some View {
+        ZStack {
+            PhoneMicThemeStyleApplier(preference: model.themePreference)
+                .frame(width: 0, height: 0)
+
+            PhoneMicHomeView(model: model) {
+                showsSettings = true
+            }
+        }
+        .sheet(isPresented: $showsSettings) {
+            PhoneMicSettingsView(model: model)
+        }
+    }
+}
+
+private struct PhoneMicHomeView: View {
+    @ObservedObject var model: PhoneMicIOSModel
+    let settingsAction: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         TimelineView(.animation(minimumInterval: PhoneMicDisplayRefresh.interval, paused: reduceMotion)) { timeline in
@@ -13,9 +32,6 @@ struct PhoneMicView: View {
                 let state = PhoneMicViewState(model: model)
 
                 ZStack {
-                    PhoneMicThemeStyleApplier(preference: model.themePreference)
-                        .frame(width: 0, height: 0)
-
                     PhoneMicBackground(state: state)
                         .ignoresSafeArea()
 
@@ -25,7 +41,7 @@ struct PhoneMicView: View {
                                 model: model,
                                 state: state,
                                 displayTime: timeline.date.timeIntervalSinceReferenceDate,
-                                settingsAction: { showsSettings = true }
+                                settingsAction: settingsAction
                             )
                         }
                         .frame(maxWidth: 440)
@@ -37,9 +53,6 @@ struct PhoneMicView: View {
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
             }
-        }
-        .sheet(isPresented: $showsSettings) {
-            PhoneMicSettingsView(model: model)
         }
     }
 }
@@ -115,17 +128,35 @@ private struct PhoneMicTopBar: View {
 
             Spacer(minLength: 8)
 
-            Button(action: settingsAction) {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 19, weight: .bold))
-                    .frame(width: 42, height: 42)
-                    .contentShape(Circle())
-                    .liquidGlassSurface(cornerRadius: 21, tint: state.accentColor.opacity(0.08), isCircle: true, interactive: true)
-            }
-            .buttonStyle(PhoneMicBouncyButtonStyle(scale: 0.90))
-            .foregroundStyle(.primary)
-            .accessibilityLabel("设置")
+            settingsButton
+                .foregroundStyle(.primary)
+                .accessibilityLabel("设置")
         }
+    }
+
+    @ViewBuilder
+    private var settingsButton: some View {
+        if #available(iOS 26.0, *) {
+            Button(action: settingsAction) {
+                settingsLabel
+            }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .controlSize(.large)
+        } else {
+            Button(action: settingsAction) {
+                settingsLabel
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.circle)
+            .controlSize(.large)
+        }
+    }
+
+    private var settingsLabel: some View {
+        Image(systemName: "ellipsis")
+            .font(.system(size: 18, weight: .bold))
+            .frame(width: 22, height: 22)
     }
 }
 
@@ -344,81 +375,97 @@ private struct SummaryItem: View {
 private struct PhoneMicSettingsView: View {
     @ObservedObject var model: PhoneMicIOSModel
     @Environment(\.dismiss) private var dismiss
+    @State private var deviceNameDraft = ""
+    @FocusState private var isDeviceNameFocused: Bool
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                PhoneMicThemeStyleApplier(preference: model.themePreference)
-                    .frame(width: 0, height: 0)
+            Form {
+                Section("主题设置") {
+                    PhoneMicChoiceButtons(
+                        options: PhoneMicThemePreference.allCases,
+                        selection: $model.themePreference,
+                        title: \.displayName
+                    )
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                    .listRowBackground(Color.clear)
+                }
 
-                Form {
-                    Section("主题设置") {
-                        PhoneMicChoiceButtons(
-                            options: PhoneMicThemePreference.allCases,
-                            selection: $model.themePreference,
-                            title: \.displayName
-                        )
-                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                        .listRowBackground(Color.clear)
-                    }
-
-                    Section("设备名称") {
-                        PhoneMicChoiceButtons(
-                            options: PhoneMicDeviceNameMode.allCases,
-                            selection: $model.deviceNameMode,
-                            title: \.displayName
-                        )
-                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                        .listRowBackground(Color.clear)
-
-                        if model.deviceNameMode == .automatic {
-                            LabeledContent("显示名称", value: model.systemDeviceDisplayName)
-                        } else {
-                            TextField("设备名称", text: $model.deviceDisplayName)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                        }
-
-                        LabeledContent("机型", value: model.deviceModelDisplayName)
-
-                        Button("恢复自动名称") {
-                            model.deviceNameMode = .automatic
-                        }
-                    }
-
-                    Section("设备与连接") {
-                        Picker("输入", selection: $model.inputMode) {
-                            ForEach(MicrophoneInputMode.allCases) { mode in
-                                Text(mode.displayName).tag(mode)
+                Section("设备名称") {
+                    HStack(spacing: 16) {
+                        Text("名称")
+                        Spacer(minLength: 20)
+                        TextField("名称", text: $deviceNameDraft)
+                            .focused($isDeviceNameFocused)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .submitLabel(.done)
+                            .lineLimit(1)
+                            .onSubmit {
+                                commitDeviceName()
                             }
-                        }
-
-                        LabeledContent("连接方式", value: PhoneMicViewState(model: model).transportValue)
-                        LabeledContent("Mac", value: PhoneMicViewState(model: model).clientValue)
-
-                        Button("忘记此 Mac", role: .destructive) {
-                            model.forgetTrustedMacs()
-                        }
                     }
-
-                    Section("关于") {
-                        LabeledContent("名称", value: PhoneMicAppInfo.displayName)
-                        LabeledContent("版本", value: PhoneMicAppInfo.versionText)
-                        Text("音频只在本地网络或 USB 内传输，不录音、不上传云端。")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isDeviceNameFocused = true
                     }
                 }
+
+                Section("设备与连接") {
+                    Picker("输入", selection: $model.inputMode) {
+                        ForEach(MicrophoneInputMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+
+                    LabeledContent("连接方式", value: PhoneMicViewState(model: model).transportValue)
+                    LabeledContent("Mac", value: PhoneMicViewState(model: model).clientValue)
+
+                    Button("忘记此 Mac", role: .destructive) {
+                        model.forgetTrustedMacs()
+                    }
+                }
+
+                Section("关于") {
+                    LabeledContent("名称", value: PhoneMicAppInfo.displayName)
+                    LabeledContent("版本", value: PhoneMicAppInfo.versionText)
+                    Text("音频只在本地网络或 USB 内传输，不录音、不上传云端。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .scrollDismissesKeyboard(.immediately)
             .navigationTitle("设置")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("完成") {
+                        commitDeviceName()
                         dismiss()
                     }
                 }
             }
         }
+        .onAppear {
+            deviceNameDraft = model.deviceDisplayName
+        }
+        .onChange(of: deviceNameDraft) { _, newName in
+            model.saveDeviceDisplayName(newName)
+        }
+        .onChange(of: isDeviceNameFocused) { _, isFocused in
+            if !isFocused {
+                commitDeviceName()
+            }
+        }
+        .onDisappear {
+            commitDeviceName()
+        }
+    }
+
+    private func commitDeviceName() {
+        model.saveDeviceDisplayName(deviceNameDraft)
+        deviceNameDraft = model.deviceDisplayName
+        isDeviceNameFocused = false
     }
 }
 
@@ -427,89 +474,7 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
     let title: (Option) -> String
 
-    @Namespace private var glassNamespace
-
     var body: some View {
-        if #available(iOS 26.0, *) {
-            liquidGlassPicker
-        } else {
-            systemSegmentedPicker
-        }
-    }
-
-    @available(iOS 26.0, *)
-    private var liquidGlassPicker: some View {
-        ZStack {
-            liquidGlassSurfaces
-
-            HStack(spacing: 0) {
-                ForEach(options) { option in
-                    Button {
-                        select(option)
-                    } label: {
-                        choiceLabel(for: option, isSelected: selection == option)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(selection == option ? .isSelected : [])
-                }
-            }
-            .padding(4)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 62)
-    }
-
-    @available(iOS 26.0, *)
-    private var liquidGlassSurfaces: some View {
-        GlassEffectContainer(spacing: 8) {
-            ZStack {
-                Color.clear
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 62)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    .glassEffectID("settings-choice-background", in: glassNamespace)
-
-                HStack(spacing: 0) {
-                    ForEach(options) { option in
-                        ZStack {
-                            if selection == option {
-                                Color.clear
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 54)
-                                    .glassEffect(.regular.interactive(), in: .capsule)
-                                    .glassEffectID("settings-choice-selection", in: glassNamespace)
-                                    .glassEffectTransition(.matchedGeometry)
-                                    .transition(.identity)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 54)
-                    }
-                }
-                .padding(4)
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    private func select(_ option: Option) {
-        withAnimation(.smooth(duration: 0.28)) {
-            selection = option
-        }
-    }
-
-    private func choiceLabel(for option: Option, isSelected: Bool) -> some View {
-        Text(title(option))
-            .font(.system(size: 17, weight: .semibold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
-            .foregroundStyle(isSelected ? Color.blue : Color.primary)
-            .frame(maxWidth: .infinity)
-            .frame(height: 54)
-            .contentShape(Capsule())
-    }
-
-    private var systemSegmentedPicker: some View {
         Picker("", selection: $selection) {
             ForEach(options) { option in
                 Text(title(option))
@@ -517,7 +482,6 @@ private struct PhoneMicChoiceButtons<Option: Hashable & Identifiable>: View {
             }
         }
         .pickerStyle(.segmented)
-        .controlSize(.extraLarge)
         .tint(.blue)
         .labelsHidden()
     }
@@ -781,15 +745,6 @@ private extension View {
         }
     }
 
-    @ViewBuilder
-    func choiceGlassSurface() -> some View {
-        if #available(iOS 26.0, *) {
-            self
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 23))
-        } else {
-            self
-        }
-    }
 }
 
 private enum PhoneMicDisplayRefresh {

@@ -1376,11 +1376,7 @@ final class MicrophoneStreamer {
     }
 
     private static func defaultDeviceDisplayName() -> String {
-        let systemName = UIDevice.current.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if systemName.isEmpty || systemName == UIDevice.current.model {
-            return deviceModelDisplayName()
-        }
-        return systemName
+        deviceModelDisplayName()
     }
 
     private enum DeviceModelName {
@@ -1390,6 +1386,14 @@ final class MicrophoneStreamer {
         }
 
         private static func hardwareIdentifier() -> String {
+            #if targetEnvironment(simulator)
+            if let simulatedIdentifier = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"],
+               !simulatedIdentifier.isEmpty
+            {
+                return simulatedIdentifier
+            }
+            #endif
+
             var systemInfo = utsname()
             uname(&systemInfo)
             let mirror = Mirror(reflecting: systemInfo.machine)
