@@ -1431,6 +1431,13 @@ final class MicrophoneStreamer {
             "iPhone18,1": "iPhone 17 Pro",
             "iPhone18,2": "iPhone 17 Pro Max",
             "iPhone18,4": "iPhone Air",
+            "iPhone18,5": "iPhone 17e",
+            // iPhone 18 Pro and iPhone 18 Pro Max use different ProductType
+            // identifiers by region; the displayed marketing name is shared.
+            "iPhone19,2": "iPhone 18 Pro",
+            "iPhone19,3": "iPhone 18 Pro Max",
+            "iPhone19,7": "iPhone 18 Pro Max",
+            "iPhone19,4": "iPhone Duo",
         ]
     }
 
