@@ -289,6 +289,36 @@ func testManualConnectionModesDoNotAutoFallback() throws {
     try expect(!wireless.shouldSwitchTransport, "manual wireless mode should not switch itself to USB")
 }
 
+func testAutomaticConnectionModeKeepsWiFiUntilPairingExists() throws {
+    let unpairedAutomatic = PhoneMicConnectionResolution(
+        mode: .automatic,
+        currentTransport: .wifi,
+        isIPhoneUSBConnected: true,
+        hasTrustedPeer: false
+    )
+
+    try expect(
+        unpairedAutomatic.targetTransport == .wifi,
+        "automatic mode should keep Wi-Fi discovery available until the iPhone has been paired once"
+    )
+    try expect(
+        !unpairedAutomatic.shouldSwitchTransport,
+        "automatic mode should not switch an unpaired iPhone to USB-only discovery"
+    )
+}
+
+func testPairingDiscoveredWiFiDeviceForcesWiFiTransport() throws {
+    let decision = PhoneMicPairingConnectionResolution(
+        currentTransport: .usb,
+        discoveredTransport: .wifi
+    )
+
+    try expect(
+        decision.shouldForceWiFiPairing,
+        "pairing a discovered Wi-Fi iPhone should force Wi-Fi even while automatic mode is waiting for USB"
+    )
+}
+
 let tests: [(String, () throws -> Void)] = [
     ("packet round-trip", testPacketRoundTrip),
     ("control message round-trip", testControlMessageRoundTrip),
@@ -307,7 +337,9 @@ let tests: [(String, () throws -> Void)] = [
     ("USB selection prefers USB-connected iPhone devices", testUSBSelectionPrefersUSBConnectedIPhoneDevice),
     ("automatic mode reapplies when USB is unplugged", testAutomaticModeReappliesWhenUSBIsUnplugged),
     ("connection resolution switches both directions in automatic mode", testConnectionResolutionSwitchesBothDirectionsInAutomaticMode),
-    ("manual connection modes do not auto fallback", testManualConnectionModesDoNotAutoFallback)
+    ("manual connection modes do not auto fallback", testManualConnectionModesDoNotAutoFallback),
+    ("automatic connection mode keeps Wi-Fi until pairing exists", testAutomaticConnectionModeKeepsWiFiUntilPairingExists),
+    ("pairing discovered Wi-Fi device forces Wi-Fi transport", testPairingDiscoveredWiFiDeviceForcesWiFiTransport)
 ]
 
 do {

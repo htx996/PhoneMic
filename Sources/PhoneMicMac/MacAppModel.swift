@@ -225,6 +225,7 @@ final class MacAppModel: ObservableObject {
     private var wiredConnectInFlight = false
     private var wiredNextConnectAttemptAt = Date.distantPast
     private var wiredConnectAttemptCount = 0
+    private var pairingTransportOverrideExpiresAt: Date?
     private var resolvedTransport: PhoneMicTransportKind = .wifi
     private var smoothedLevel: Float = 0
     private var lastLevelPublishedAt = Date.distantPast
@@ -399,6 +400,7 @@ final class MacAppModel: ObservableObject {
     }
 
     func pair(_ device: PhoneMicDiscoveredDevice) {
+        prepareTransportForPairing(device)
         connectionState = .pairing
         let code = PhoneMicSecurity.randomPairingCode()
         let secret = PhoneMicSecurity.randomSecret()
@@ -409,6 +411,45 @@ final class MacAppModel: ObservableObject {
             code: code,
             secret: secret
         )
+    }
+
+    private func prepareTransportForPairing(_ device: PhoneMicDiscoveredDevice) {
+        let resolution = PhoneMicPairingConnectionResolution(
+            currentTransport: resolvedTransport,
+            discoveredTransport: device.transport
+        )
+        guard resolution.shouldForceWiFiPairing else { return }
+
+        resolvedTransport = .wifi
+        wiredConnectInFlight = false
+        wiredConnectAttemptCount = 0
+        let overrideExpiresAt = Date().addingTimeInterval(30)
+        wiredNextConnectAttemptAt = overrideExpiresAt
+        pairingTransportOverrideExpiresAt = overrideExpiresAt
+        usbProxy.stop()
+        refreshUSBProxyDescription()
+        receiver.setTransportPolicy(.wifiOnly)
+        receiver.start()
+        connectionDescription = "正在配对"
+        onboardingDescription = "正在通过 Wi-Fi 与 \(device.name) 配对。"
+        transportStats = PhoneMicTransportStats(transport: .wifi)
+        applyLatencyMode(for: .wifi)
+    }
+
+    private func resumeAutomaticTransportAfterPairingIfNeeded() {
+        pairingTransportOverrideExpiresAt = nil
+        wiredNextConnectAttemptAt = .distantPast
+        guard connectionMode == .automatic else { return }
+        refreshAutomaticConnectionModeIfNeeded(forceUSBRefresh: true)
+    }
+
+    private func pairingTransportOverrideIsActive() -> Bool {
+        guard let expiresAt = pairingTransportOverrideExpiresAt else { return false }
+        guard Date() < expiresAt else {
+            pairingTransportOverrideExpiresAt = nil
+            return false
+        }
+        return true
     }
 
     func approvePendingPairing() {
@@ -583,10 +624,12 @@ final class MacAppModel: ObservableObject {
             }
             pendingPairingRequest = nil
             connectionState = isConnected ? .streaming : .discovering
+            resumeAutomaticTransportAfterPairingIfNeeded()
         case .pairingFailed(let message):
             _ = message
             pendingPairingRequest = nil
             connectionState = .error
+            resumeAutomaticTransportAfterPairingIfNeeded()
         case .streamStopping:
             isConnected = false
             connectionState = .offline
@@ -769,6 +812,7 @@ final class MacAppModel: ObservableObject {
 
     private func refreshAutomaticConnectionModeIfNeeded(forceUSBRefresh: Bool = false) {
         guard connectionMode == .automatic else { return }
+        guard !pairingTransportOverrideIsActive() else { return }
         if forceUSBRefresh {
             usbProxy.requestIPhoneUSBRefresh(force: true)
         }
@@ -779,6 +823,7 @@ final class MacAppModel: ObservableObject {
     private func handleUSBConnectionAvailabilityChanged(_ isIPhoneUSBConnected: Bool) {
         refreshUSBProxyDescription()
         guard connectionMode == .automatic else { return }
+        guard !pairingTransportOverrideIsActive() else { return }
         resolveConnectionTransport(isIPhoneUSBConnected: isIPhoneUSBConnected)
     }
 
@@ -786,7 +831,8 @@ final class MacAppModel: ObservableObject {
         let resolution = PhoneMicConnectionResolution(
             mode: connectionMode,
             currentTransport: resolvedTransport,
-            isIPhoneUSBConnected: isIPhoneUSBConnected
+            isIPhoneUSBConnected: isIPhoneUSBConnected,
+            hasTrustedPeer: !trustedPeers.isEmpty
         )
         guard force || resolution.shouldSwitchTransport else {
             refreshConnectionModeDescription(isIPhoneUSBConnected: isIPhoneUSBConnected)
