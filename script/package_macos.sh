@@ -8,10 +8,27 @@ APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 DMG_PATH="$DIST_DIR/$APP_NAME-dev.dmg"
 VERSION_FILE="$DIST_DIR/version.json"
 CHECKSUM_FILE="$DIST_DIR/checksums.txt"
+MACOS_CODESIGN_IDENTITY="${MACOS_CODESIGN_IDENTITY:--}"
 
 cd "$ROOT_DIR"
 
 PHONE_MIC_BUILD_CONFIGURATION=release "$ROOT_DIR/script/build_and_run.sh" --verify
+
+# The Swift linker may leave an ad-hoc signature on the executable, but that
+# does not seal the application bundle or its bundled helper. Sign both code
+# objects explicitly so Gatekeeper does not interpret the downloaded app as
+# a malformed/corrupted bundle. Pass MACOS_CODESIGN_IDENTITY for a real
+# Apple Development or Developer ID Application certificate; '-' keeps the
+# local development fallback ad-hoc signed.
+pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+/usr/bin/codesign --force --timestamp=none \
+  --sign "$MACOS_CODESIGN_IDENTITY" \
+  "$APP_BUNDLE/Contents/Resources/phonemic-usbproxy"
+/usr/bin/codesign --force --timestamp=none --options runtime \
+  --sign "$MACOS_CODESIGN_IDENTITY" \
+  "$APP_BUNDLE"
+
+/usr/bin/codesign --verify --deep --strict "$APP_BUNDLE"
 
 rm -f "$DMG_PATH" "$VERSION_FILE" "$CHECKSUM_FILE"
 
