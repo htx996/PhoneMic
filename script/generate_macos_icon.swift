@@ -22,6 +22,35 @@ struct IconSize {
     var pixels: Int { Int(points * scale) }
 }
 
+enum IconAppearance {
+    case light
+    case dark
+
+    var backgroundColors: [NSColor] {
+        switch self {
+        case .light:
+            return [
+                NSColor(calibratedRed: 0.08, green: 0.78, blue: 0.96, alpha: 1),
+                NSColor(calibratedRed: 0.02, green: 0.47, blue: 0.96, alpha: 1),
+                NSColor(calibratedRed: 0.03, green: 0.32, blue: 0.86, alpha: 1),
+            ]
+        case .dark:
+            return [
+                NSColor(calibratedRed: 0.12, green: 0.15, blue: 0.20, alpha: 1),
+                NSColor(calibratedRed: 0.03, green: 0.06, blue: 0.12, alpha: 1),
+                NSColor(calibratedRed: 0.01, green: 0.02, blue: 0.05, alpha: 1),
+            ]
+        }
+    }
+
+    var sheenOpacity: CGFloat {
+        switch self {
+        case .light: return 0.34
+        case .dark: return 0.16
+        }
+    }
+}
+
 let sizes: [IconSize] = [
     .init(filename: "icon_16x16.png", points: 16, scale: 1),
     .init(filename: "icon_16x16@2x.png", points: 16, scale: 2),
@@ -36,14 +65,8 @@ let sizes: [IconSize] = [
 ]
 
 let iosSizes: [IconSize] = [
-    .init(filename: "PhoneMicIcon-iphone-2020-2x.png", points: 20, scale: 2),
-    .init(filename: "PhoneMicIcon-iphone-2020-3x.png", points: 20, scale: 3),
-    .init(filename: "PhoneMicIcon-iphone-2929-2x.png", points: 29, scale: 2),
-    .init(filename: "PhoneMicIcon-iphone-2929-3x.png", points: 29, scale: 3),
-    .init(filename: "PhoneMicIcon-iphone-4040-2x.png", points: 40, scale: 2),
-    .init(filename: "PhoneMicIcon-iphone-4040-3x.png", points: 40, scale: 3),
-    .init(filename: "PhoneMicIcon-iphone-6060-2x.png", points: 60, scale: 2),
-    .init(filename: "PhoneMicIcon-iphone-6060-3x.png", points: 60, scale: 3),
+    // Xcode's Single Size app icon format uses the 1024px source for all
+    // iPhone sizes and supports Any/Dark appearance variants.
     .init(filename: "PhoneMicIcon-ios-marketing-10241024-1x.png", points: 1024, scale: 1),
 ]
 
@@ -51,7 +74,11 @@ func roundedRectPath(rect: CGRect, radius: CGFloat) -> CGPath {
     NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).cgPath
 }
 
-func drawIcon(size: Int, fullBleed: Bool = false) -> NSBitmapImageRep {
+func drawIcon(
+    size: Int,
+    fullBleed: Bool = false,
+    appearance: IconAppearance = .light
+) -> NSBitmapImageRep {
     let canvas = CGFloat(size)
     guard
         let bitmap = NSBitmapImageRep(
@@ -110,11 +137,7 @@ func drawIcon(size: Int, fullBleed: Bool = false) -> NSBitmapImageRep {
     let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
     let gradient = CGGradient(
         colorsSpace: colorSpace,
-        colors: [
-            NSColor(calibratedRed: 0.08, green: 0.78, blue: 0.96, alpha: 1).cgColor,
-            NSColor(calibratedRed: 0.02, green: 0.47, blue: 0.96, alpha: 1).cgColor,
-            NSColor(calibratedRed: 0.03, green: 0.32, blue: 0.86, alpha: 1).cgColor,
-        ] as CFArray,
+        colors: appearance.backgroundColors.map(\.cgColor) as CFArray,
         locations: [0.0, 0.58, 1.0]
     )!
     context.drawLinearGradient(
@@ -133,7 +156,7 @@ func drawIcon(size: Int, fullBleed: Bool = false) -> NSBitmapImageRep {
     let sheen = CGGradient(
         colorsSpace: colorSpace,
         colors: [
-            NSColor.white.withAlphaComponent(0.34).cgColor,
+            NSColor.white.withAlphaComponent(appearance.sheenOpacity).cgColor,
             NSColor.white.withAlphaComponent(0.12).cgColor,
             NSColor.white.withAlphaComponent(0.00).cgColor,
         ] as CFArray,
@@ -272,11 +295,15 @@ for size in sizes {
 try writePNG(drawIcon(size: 1024), to: preview)
 
 for size in iosSizes {
-    let image = drawIcon(size: size.pixels, fullBleed: true)
+    let image = drawIcon(size: size.pixels, fullBleed: true, appearance: .light)
     try writePNG(flattenedRGB(image), to: iosAppIconSet.appendingPathComponent(size.filename))
+
+    let darkFilename = size.filename.replacingOccurrences(of: ".png", with: "-dark.png")
+    let darkImage = drawIcon(size: size.pixels, fullBleed: true, appearance: .dark)
+    try writePNG(flattenedRGB(darkImage), to: iosAppIconSet.appendingPathComponent(darkFilename))
 }
 
-try writePNG(flattenedRGB(drawIcon(size: 1024, fullBleed: true)), to: iosPreview)
+try writePNG(flattenedRGB(drawIcon(size: 1024, fullBleed: true, appearance: .light)), to: iosPreview)
 
 let process = Process()
 process.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
