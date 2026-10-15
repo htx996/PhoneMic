@@ -630,6 +630,14 @@ final class MacAppModel: ObservableObject {
             pendingPairingRequest = nil
             connectionState = isConnected ? .streaming : .discovering
             resumeAutomaticTransportAfterPairingIfNeeded()
+            if !isConnected {
+                // A newly trusted peer may have the same selected ID as the
+                // device that was used for pairing, so selectedDeviceID's
+                // didSet is not guaranteed to reconfigure the receiver.
+                // Explicitly restart discovery after the pairing socket is
+                // closed so automatic mode can connect without another click.
+                receiver.restartDiscovery()
+            }
         case .pairingFailed(let message):
             pairingMessage = message
             connectionDescription = "配对失败"

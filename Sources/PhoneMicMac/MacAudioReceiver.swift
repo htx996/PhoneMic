@@ -944,6 +944,13 @@ final class MacAudioReceiver {
                     connection.cancel()
                     return
                 }
+                // The pairing socket is not the streaming socket. Release it
+                // before publishing success so a Bonjour result cannot be
+                // rejected by the stale `connection != nil` guard while the
+                // automatic stream connection is being re-established.
+                if self.connection === connection {
+                    self.connection = nil
+                }
                 onEvent?(.pairingSucceeded(device, secret))
                 suppressNextCancelledEvent = true
                 connection.cancel()
