@@ -62,6 +62,11 @@ final class MacAudioReceiver {
                 return .wifi
             }
         }
+
+        var isPairing: Bool {
+            if case .pair = self { return true }
+            return false
+        }
     }
 
     private let queue = DispatchQueue(label: "PhoneMic.MacAudioReceiver")
@@ -719,9 +724,15 @@ final class MacAudioReceiver {
                 self.controlConnection = nil
                 self.stopStreamWatchdog()
                 self.jitterBuffer.clear()
-                self.onEvent?(.disconnected("连接失败：\(error.localizedDescription)"))
+                if purpose.isPairing {
+                    self.onEvent?(.pairingFailed("配对连接失败：\(error.localizedDescription)"))
+                } else {
+                    self.onEvent?(.disconnected("连接失败：\(error.localizedDescription)"))
+                }
                 if self.transportPolicy.allows(purpose.transportKind) {
-                    self.scheduleDiscoveryRetry(for: purpose.transportKind)
+                    if !purpose.isPairing {
+                        self.scheduleDiscoveryRetry(for: purpose.transportKind)
+                    }
                 }
             case .cancelled:
                 self.connection = nil
@@ -733,8 +744,12 @@ final class MacAudioReceiver {
                     self.suppressNextCancelledEvent = false
                     return
                 }
-                self.onEvent?(.disconnected("连接已关闭。"))
-                if self.transportPolicy.allows(purpose.transportKind) {
+                if purpose.isPairing {
+                    self.onEvent?(.pairingFailed("配对连接已关闭，请在 Mac 上重新点击配对。"))
+                } else {
+                    self.onEvent?(.disconnected("连接已关闭。"))
+                }
+                if self.transportPolicy.allows(purpose.transportKind), !purpose.isPairing {
                     self.scheduleDiscoveryRetry(for: purpose.transportKind)
                 }
             default:
@@ -787,7 +802,12 @@ final class MacAudioReceiver {
 
             connection.send(content: try message.encodedLine(), completion: .contentProcessed { _ in })
         } catch {
-            onEvent?(.error("无法编码 PhoneMic 握手消息：\(error.localizedDescription)"))
+            if purpose.isPairing {
+                suppressNextCancelledEvent = true
+                onEvent?(.pairingFailed("无法发送配对请求：\(error.localizedDescription)"))
+            } else {
+                onEvent?(.error("无法编码 PhoneMic 握手消息：\(error.localizedDescription)"))
+            }
             connection.cancel()
         }
     }
@@ -815,13 +835,23 @@ final class MacAudioReceiver {
             }
 
             if let error {
-                self.onEvent?(.disconnected("握手失败：\(error.localizedDescription)"))
+                if purpose.isPairing {
+                    self.suppressNextCancelledEvent = true
+                    self.onEvent?(.pairingFailed("配对响应失败：\(error.localizedDescription)"))
+                } else {
+                    self.onEvent?(.disconnected("握手失败：\(error.localizedDescription)"))
+                }
                 connection.cancel()
                 return
             }
 
             if isComplete {
-                self.onEvent?(.disconnected("握手连接已关闭。"))
+                if purpose.isPairing {
+                    self.suppressNextCancelledEvent = true
+                    self.onEvent?(.pairingFailed("配对响应未返回，请在 iPhone 上确认请求后重试。"))
+                } else {
+                    self.onEvent?(.disconnected("握手连接已关闭。"))
+                }
                 connection.cancel()
                 return
             }

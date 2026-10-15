@@ -17,6 +17,7 @@ final class MacAppModel: ObservableObject {
     @Published var privacyDescription = "音频只在本地网络或 USB 内传输，不录音、不上传云端。"
     @Published var latestDeviceStatus: PhoneMicDeviceStatus?
     @Published var pendingPairingRequest: PhoneMicPendingPairing?
+    @Published var pairingMessage: String?
     @Published var latencyDescription = "--"
     @Published var bufferDescription = "--"
     @Published var discoveredDevices: [PhoneMicDiscoveredDevice] = []
@@ -400,6 +401,9 @@ final class MacAppModel: ObservableObject {
     }
 
     func pair(_ device: PhoneMicDiscoveredDevice) {
+        pairingMessage = nil
+        connectionDescription = "正在配对"
+        onboardingDescription = "正在通过 Wi-Fi 与 \(device.name) 配对。"
         prepareTransportForPairing(device)
         connectionState = .pairing
         let code = PhoneMicSecurity.randomPairingCode()
@@ -612,6 +616,7 @@ final class MacAppModel: ObservableObject {
             pendingPairingRequest = request
             connectionState = .pairing
         case .pairingSucceeded(let device, let secret):
+            pairingMessage = nil
             let peer = PhoneMicTrustedPeer(id: device.id, name: device.name, sharedSecret: secret)
             trustedPeers[device.id] = peer
             persistTrustedPeers()
@@ -626,7 +631,8 @@ final class MacAppModel: ObservableObject {
             connectionState = isConnected ? .streaming : .discovering
             resumeAutomaticTransportAfterPairingIfNeeded()
         case .pairingFailed(let message):
-            _ = message
+            pairingMessage = message
+            connectionDescription = "配对失败"
             pendingPairingRequest = nil
             connectionState = .error
             resumeAutomaticTransportAfterPairingIfNeeded()
@@ -636,6 +642,7 @@ final class MacAppModel: ObservableObject {
             clearLevel()
             latestLatencyMilliseconds = nil
         case .error(let message):
+            pairingMessage = message
             if resolvedTransport == .usb {
                 wiredConnectInFlight = false
                 onboardingDescription = wiredDisconnectDescription(message)

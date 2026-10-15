@@ -28,6 +28,13 @@ struct MacStatusView: View {
 
                     devicePairingSection
 
+                    if let pairingMessage = model.pairingMessage {
+                        Text(pairingMessage)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
                     metricRow(title: "状态", value: model.connectionState.displayName)
                     metricRow(title: "iPhone", value: model.connectedDeviceName ?? "等待中")
                     metricRow(title: "连接", value: localizedValue(model.connectionDescription))
