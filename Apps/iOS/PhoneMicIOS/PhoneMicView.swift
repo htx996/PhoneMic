@@ -376,6 +376,7 @@ private struct PhoneMicSettingsView: View {
     @ObservedObject var model: PhoneMicIOSModel
     @Environment(\.dismiss) private var dismiss
     @State private var deviceNameDraft = ""
+    @State private var showsForgetMacConfirmation = false
     @FocusState private var isDeviceNameFocused: Bool
 
     var body: some View {
@@ -422,9 +423,14 @@ private struct PhoneMicSettingsView: View {
                     LabeledContent("连接方式", value: PhoneMicViewState(model: model).transportValue)
                     LabeledContent("Mac", value: PhoneMicViewState(model: model).clientValue)
 
-                    Button("忘记此 Mac", role: .destructive) {
-                        model.forgetTrustedMacs()
+                    Button(role: .destructive) {
+                        showsForgetMacConfirmation = true
+                    } label: {
+                        Text("忘记此 Mac")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.borderless)
                 }
 
                 Section("关于") {
@@ -445,6 +451,14 @@ private struct PhoneMicSettingsView: View {
                     }
                 }
             }
+        }
+        .alert("忘记此 Mac？", isPresented: $showsForgetMacConfirmation) {
+            Button("取消", role: .cancel) {}
+            Button("确定", role: .destructive) {
+                model.forgetTrustedMacs()
+            }
+        } message: {
+            Text("忘记后，需要重新配对才能继续向这台 Mac 发送音频。")
         }
         .onAppear {
             deviceNameDraft = model.deviceDisplayName
