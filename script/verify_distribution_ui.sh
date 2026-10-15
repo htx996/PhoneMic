@@ -48,6 +48,11 @@ DMG_MOUNTED=true
   echo "DMG background is missing" >&2
   exit 1
 }
+BACKGROUND_ATTRIBUTES="$(/usr/bin/xcrun GetFileInfo -a "$MOUNT_DIR/.background")"
+[[ "$BACKGROUND_ATTRIBUTES" == *V* ]] || {
+  echo "DMG background directory is visible in Finder" >&2
+  exit 1
+}
 [[ -f "$MOUNT_DIR/.DS_Store" ]] || { echo "Finder layout metadata is missing" >&2; exit 1; }
 
 echo "PhoneMic distribution UI contract passed."

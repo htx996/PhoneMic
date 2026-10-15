@@ -611,7 +611,6 @@ final class BlackHoleOutputEngine: MicrophoneOutputEngine {
 
         let desiredGain = PhoneMicVoiceGainPolicy.desiredGain(
             activeRMS: rms,
-            peak: inputPeak,
             targetRMS: settings.voiceTargetRMS,
             maximumGain: settings.automaticGainLimit
         )

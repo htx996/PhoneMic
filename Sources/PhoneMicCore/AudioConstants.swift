@@ -19,17 +19,11 @@ public enum PhoneMicAudio {
 public enum PhoneMicVoiceGainPolicy {
     public static func desiredGain(
         activeRMS: Float,
-        peak: Float,
         targetRMS: Float,
         maximumGain: Float
     ) -> Float {
         let maximumGain = max(maximumGain, 1)
-        let peakGuard = peak > 0.08 ? max(0.75, 0.08 / peak) : maximumGain
-        return min(
-            max(targetRMS / max(activeRMS, 0.0015), 0.75),
-            maximumGain,
-            peakGuard
-        )
+        return min(max(targetRMS / max(activeRMS, 0.0015), 0.75), maximumGain)
     }
 }
 

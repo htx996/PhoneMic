@@ -322,7 +322,6 @@ func testPairingDiscoveredWiFiDeviceForcesWiFiTransport() throws {
 func testQuietVoiceCanUseConfiguredAutomaticGain() throws {
     let gain = PhoneMicVoiceGainPolicy.desiredGain(
         activeRMS: 0.00409,
-        peak: 0.02,
         targetRMS: 0.0566,
         maximumGain: 1.6
     )
@@ -330,6 +329,32 @@ func testQuietVoiceCanUseConfiguredAutomaticGain() throws {
     try expect(
         abs(gain - 1.6) < 0.0001,
         "quiet speech should use the configured automatic gain instead of being capped at unity"
+    )
+}
+
+func testTransientPeaksDoNotSuppressQuietVoiceGain() throws {
+    let gain = PhoneMicVoiceGainPolicy.desiredGain(
+        activeRMS: 0.00409,
+        targetRMS: 0.0566,
+        maximumGain: 3.7
+    )
+
+    try expect(
+        abs(gain - 3.7) < 0.0001,
+        "normal speech peaks should be handled by the limiters instead of suppressing quiet-voice gain"
+    )
+}
+
+func testLoudVoiceStillReducesAutomaticGain() throws {
+    let gain = PhoneMicVoiceGainPolicy.desiredGain(
+        activeRMS: 0.09,
+        targetRMS: 0.0566,
+        maximumGain: 3.7
+    )
+
+    try expect(
+        abs(gain - 0.75) < 0.0001,
+        "loud speech should still reduce automatic gain before reaching the limiters"
     )
 }
 
@@ -354,7 +379,9 @@ let tests: [(String, () throws -> Void)] = [
     ("manual connection modes do not auto fallback", testManualConnectionModesDoNotAutoFallback),
     ("automatic connection mode keeps Wi-Fi until pairing exists", testAutomaticConnectionModeKeepsWiFiUntilPairingExists),
     ("pairing discovered Wi-Fi device forces Wi-Fi transport", testPairingDiscoveredWiFiDeviceForcesWiFiTransport),
-    ("quiet voice can use configured automatic gain", testQuietVoiceCanUseConfiguredAutomaticGain)
+    ("quiet voice can use configured automatic gain", testQuietVoiceCanUseConfiguredAutomaticGain),
+    ("transient peaks do not suppress quiet voice gain", testTransientPeaksDoNotSuppressQuietVoiceGain),
+    ("loud voice still reduces automatic gain", testLoudVoiceStillReducesAutomaticGain)
 ]
 
 do {

@@ -52,6 +52,7 @@ rm -f "$DMG_PATH" "$VERSION_FILE" "$CHECKSUM_FILE"
 /bin/ln -s /Applications "$DMG_STAGING_DIR/Applications"
 /usr/bin/xcrun swift "$ROOT_DIR/script/generate_dmg_background.swift" \
   "$DMG_STAGING_DIR/.background/PhoneMicDMGBackground.png"
+/usr/bin/SetFile -a V "$DMG_STAGING_DIR/.background"
 
 /usr/bin/hdiutil create \
   -volname "$APP_NAME" \
