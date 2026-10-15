@@ -16,6 +16,23 @@ public enum PhoneMicAudio {
     public static let controlMessageMaximumBytes = 8 * 1024
 }
 
+public enum PhoneMicVoiceGainPolicy {
+    public static func desiredGain(
+        activeRMS: Float,
+        peak: Float,
+        targetRMS: Float,
+        maximumGain: Float
+    ) -> Float {
+        let maximumGain = max(maximumGain, 1)
+        let peakGuard = peak > 0.08 ? max(0.75, 0.08 / peak) : maximumGain
+        return min(
+            max(targetRMS / max(activeRMS, 0.0015), 0.75),
+            maximumGain,
+            peakGuard
+        )
+    }
+}
+
 public enum PhoneMicClock {
     public static func wallClockNanoseconds() -> UInt64 {
         UInt64(Date().timeIntervalSince1970 * 1_000_000_000)

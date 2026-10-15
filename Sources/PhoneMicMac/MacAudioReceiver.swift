@@ -67,6 +67,11 @@ final class MacAudioReceiver {
             if case .pair = self { return true }
             return false
         }
+
+        var reconnectTransport: PhoneMicTransportKind? {
+            if case .stream(_, _, let transport) = self { return transport }
+            return nil
+        }
     }
 
     private let queue = DispatchQueue(label: "PhoneMic.MacAudioReceiver")
@@ -86,7 +91,6 @@ final class MacAudioReceiver {
     private var stats = PhoneMicTransportStats()
     private var lastStatsEventAt = Date.distantPast
     private var lastPacketEventAt = Date.distantPast
-    private var suppressNextCancelledEvent = false
     private var watchdogTimer: DispatchSourceTimer?
     private var streamStartedAt: Date?
     private var latestStatusAt: Date?
@@ -295,6 +299,7 @@ final class MacAudioReceiver {
 
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
         guard let port = NWEndpoint.Port(rawValue: PhoneMicAudio.audioPort) else {
             onEvent?(.error("PhoneMic 接收端端口无效。"))
             return
@@ -336,6 +341,7 @@ final class MacAudioReceiver {
         let descriptor = NWBrowser.Descriptor.bonjour(type: PhoneMicAudio.bonjourServiceType, domain: nil)
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
 
         let browser = NWBrowser(for: descriptor, using: parameters)
         self.browser = browser
@@ -678,8 +684,12 @@ final class MacAudioReceiver {
     }
 
     private func connect(to endpoint: NWEndpoint, name: String, purpose: ConnectionPurpose) {
-        connection?.cancel()
-        controlConnection?.cancel()
+        let previousConnection = connection
+        connection = nil
+        previousConnection?.cancel()
+        let previousControlConnection = controlConnection
+        controlConnection = nil
+        previousControlConnection?.cancel()
         receiveBuffer.removeAll()
         controlBuffer.removeAll()
         receivedByteLogCount = 0
@@ -695,6 +705,10 @@ final class MacAudioReceiver {
 
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
+        if purpose.transportKind != .usb {
+            parameters.prohibitedInterfaceTypes = [.loopback]
+        }
 
         let connection = NWConnection(to: endpoint, using: parameters)
         self.connection = connection
@@ -702,20 +716,18 @@ final class MacAudioReceiver {
         connection.stateUpdateHandler = { [weak self] state in
             guard let self else { return }
             self.debug("connection state: \(state)")
+            guard self.connection === connection else { return }
 
             switch state {
             case .ready:
                 self.sendInitialControlMessage(on: connection, purpose: purpose)
                 self.receiveControlResponse(on: connection, purpose: purpose)
             case .waiting(let error) where purpose.transportKind == .usb:
-                if self.connection === connection {
-                    self.connection = nil
-                }
+                self.connection = nil
                 self.controlConnection?.cancel()
                 self.controlConnection = nil
                 self.stopStreamWatchdog()
                 self.jitterBuffer.clear()
-                self.suppressNextCancelledEvent = true
                 connection.cancel()
                 self.onEvent?(.disconnected("连接失败：\(error.localizedDescription)"))
             case .failed(let error):
@@ -740,10 +752,6 @@ final class MacAudioReceiver {
                 self.controlConnection = nil
                 self.stopStreamWatchdog()
                 self.jitterBuffer.clear()
-                if self.suppressNextCancelledEvent {
-                    self.suppressNextCancelledEvent = false
-                    return
-                }
                 if purpose.isPairing {
                     self.onEvent?(.pairingFailed("配对连接已关闭，请在 Mac 上重新点击配对。"))
                 } else {
@@ -758,6 +766,29 @@ final class MacAudioReceiver {
         }
 
         connection.start(queue: queue)
+    }
+
+    private func retireConnection(
+        _ candidate: NWConnection,
+        reconnectTransport: PhoneMicTransportKind?
+    ) {
+        let wasPrimaryConnection = connection === candidate
+        if wasPrimaryConnection {
+            connection = nil
+            let existingControlConnection = controlConnection
+            controlConnection = nil
+            existingControlConnection?.cancel()
+            stopStreamWatchdog()
+            jitterBuffer.clear()
+        } else if controlConnection === candidate {
+            controlConnection = nil
+        }
+
+        candidate.cancel()
+
+        if wasPrimaryConnection, let reconnectTransport {
+            scheduleDiscoveryRetry(for: reconnectTransport)
+        }
     }
 
     private func sendInitialControlMessage(on connection: NWConnection, purpose: ConnectionPurpose) {
@@ -803,12 +834,11 @@ final class MacAudioReceiver {
             connection.send(content: try message.encodedLine(), completion: .contentProcessed { _ in })
         } catch {
             if purpose.isPairing {
-                suppressNextCancelledEvent = true
                 onEvent?(.pairingFailed("无法发送配对请求：\(error.localizedDescription)"))
             } else {
                 onEvent?(.error("无法编码 PhoneMic 握手消息：\(error.localizedDescription)"))
             }
-            connection.cancel()
+            retireConnection(connection, reconnectTransport: purpose.reconnectTransport)
         }
     }
 
@@ -836,23 +866,21 @@ final class MacAudioReceiver {
 
             if let error {
                 if purpose.isPairing {
-                    self.suppressNextCancelledEvent = true
                     self.onEvent?(.pairingFailed("配对响应失败：\(error.localizedDescription)"))
                 } else {
                     self.onEvent?(.disconnected("握手失败：\(error.localizedDescription)"))
                 }
-                connection.cancel()
+                self.retireConnection(connection, reconnectTransport: purpose.reconnectTransport)
                 return
             }
 
             if isComplete {
                 if purpose.isPairing {
-                    self.suppressNextCancelledEvent = true
                     self.onEvent?(.pairingFailed("配对响应未返回，请在 iPhone 上确认请求后重试。"))
                 } else {
                     self.onEvent?(.disconnected("握手连接已关闭。"))
                 }
-                connection.cancel()
+                self.retireConnection(connection, reconnectTransport: purpose.reconnectTransport)
                 return
             }
 
@@ -940,7 +968,9 @@ final class MacAudioReceiver {
                           protocolVersion: message.protocolVersion
                       ) else {
                     onEvent?(.pairingFailed("iPhone 信任响应验证失败，请重新配对。"))
-                    suppressNextCancelledEvent = true
+                    if self.connection === connection {
+                        self.connection = nil
+                    }
                     connection.cancel()
                     return
                 }
@@ -952,11 +982,12 @@ final class MacAudioReceiver {
                     self.connection = nil
                 }
                 onEvent?(.pairingSucceeded(device, secret))
-                suppressNextCancelledEvent = true
                 connection.cancel()
             case (.pair, .pairRejected):
                 onEvent?(.pairingFailed(message.reason ?? "iPhone 拒绝了配对。"))
-                suppressNextCancelledEvent = true
+                if self.connection === connection {
+                    self.connection = nil
+                }
                 connection.cancel()
             default:
                 onEvent?(.error("收到非预期的 PhoneMic 握手响应：\(message.kind.rawValue)"))
@@ -971,6 +1002,7 @@ final class MacAudioReceiver {
     private func receiveAudio(on connection: NWConnection) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
             guard let self else { return }
+            guard self.connection === connection else { return }
 
             if let data, !data.isEmpty {
                 if self.receivedByteLogCount < 5 {
@@ -985,16 +1017,14 @@ final class MacAudioReceiver {
             if let error {
                 self.debug("receive failed: \(error)")
                 self.onEvent?(.disconnected("接收失败：\(error.localizedDescription)"))
-                self.stopStreamWatchdog()
-                self.connection?.cancel()
+                self.retireConnection(connection, reconnectTransport: self.currentTransport)
                 return
             }
 
             if isComplete {
                 self.debug("receive complete")
                 self.onEvent?(.disconnected("iPhone 已停止发送。"))
-                self.stopStreamWatchdog()
-                self.connection?.cancel()
+                self.retireConnection(connection, reconnectTransport: self.currentTransport)
                 return
             }
 
@@ -1012,6 +1042,10 @@ final class MacAudioReceiver {
 
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
+        if transport != .usb {
+            parameters.prohibitedInterfaceTypes = [.loopback]
+        }
         let controlConnection = NWConnection(to: controlEndpoint(for: endpoint, transport: transport), using: parameters)
         self.controlConnection = controlConnection
 
@@ -1174,7 +1208,7 @@ final class MacAudioReceiver {
     }
 
     private func checkStreamTimeout() {
-        guard connection != nil else { return }
+        guard let connection else { return }
 
         let now = Date()
         let referenceDate = stats.lastPacketAt ?? streamStartedAt ?? now
@@ -1184,13 +1218,8 @@ final class MacAudioReceiver {
         guard audioTimedOut || controlTimedOut else { return }
 
         debug("stream timed out after \(streamTimeoutSeconds)s without audio packets")
-        suppressNextCancelledEvent = true
-        connection?.cancel()
-        connection = nil
-        stopStreamWatchdog()
-        jitterBuffer.clear()
         onEvent?(.disconnected("iPhone 已停止发送。"))
-        scheduleDiscoveryRetry()
+        retireConnection(connection, reconnectTransport: currentTransport)
     }
 
     private func debug(_ message: String) {

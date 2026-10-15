@@ -477,6 +477,7 @@ final class MicrophoneStreamer {
     private func configureNetworkListener() throws {
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
 
         guard let port = NWEndpoint.Port(rawValue: PhoneMicAudio.audioPort) else {
             throw MicrophoneStreamerError.cannotCreateAudioFormat
@@ -509,6 +510,7 @@ final class MicrophoneStreamer {
         let descriptor = NWBrowser.Descriptor.bonjour(type: PhoneMicAudio.macReceiverBonjourServiceType, domain: nil)
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
 
         let browser = NWBrowser(for: descriptor, using: parameters)
         macBrowser = browser
@@ -605,6 +607,8 @@ final class MicrophoneStreamer {
 
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
+        parameters.prohibitedInterfaceTypes = [.loopback]
         let connection = NWConnection(to: endpoint, using: parameters)
         self.connection = connection
         connection.stateUpdateHandler = { [weak self] state in
@@ -644,6 +648,8 @@ final class MicrophoneStreamer {
     private func connectForPairing(to endpoint: NWEndpoint, request: PhoneMicPendingPairing) {
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
+        parameters.prohibitedInterfaceTypes = [.loopback]
         let connection = NWConnection(to: endpoint, using: parameters)
         outgoingPairing = OutgoingPairing(request: request, connection: connection)
         onEvent?(.pairingStarted(request))
@@ -808,6 +814,8 @@ final class MicrophoneStreamer {
         controlConnection?.cancel()
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.preferNoProxies = true
+        parameters.prohibitedInterfaceTypes = [.loopback]
         let controlConnection = NWConnection(to: endpoint, using: parameters)
         self.controlConnection = controlConnection
         controlConnection.stateUpdateHandler = { [weak self] state in

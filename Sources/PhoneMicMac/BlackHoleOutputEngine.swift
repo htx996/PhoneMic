@@ -609,9 +609,12 @@ final class BlackHoleOutputEngine: MicrophoneOutputEngine {
             return smoothedVoiceGain
         }
 
-        let targetRMS = settings.voiceTargetRMS
-        let peakGuard = inputPeak > 0.08 ? max(0.75, 0.08 / inputPeak) : Float(1)
-        let desiredGain = min(max(targetRMS / max(rms, 0.0015), 0.75), settings.automaticGainLimit, peakGuard)
+        let desiredGain = PhoneMicVoiceGainPolicy.desiredGain(
+            activeRMS: rms,
+            peak: inputPeak,
+            targetRMS: settings.voiceTargetRMS,
+            maximumGain: settings.automaticGainLimit
+        )
 
         // WeChat begins recording immediately and may drop very low-level
         // syllables as silence. Give speech onsets a fast, bounded lift, then

@@ -319,6 +319,20 @@ func testPairingDiscoveredWiFiDeviceForcesWiFiTransport() throws {
     )
 }
 
+func testQuietVoiceCanUseConfiguredAutomaticGain() throws {
+    let gain = PhoneMicVoiceGainPolicy.desiredGain(
+        activeRMS: 0.00409,
+        peak: 0.02,
+        targetRMS: 0.0566,
+        maximumGain: 1.6
+    )
+
+    try expect(
+        abs(gain - 1.6) < 0.0001,
+        "quiet speech should use the configured automatic gain instead of being capped at unity"
+    )
+}
+
 let tests: [(String, () throws -> Void)] = [
     ("packet round-trip", testPacketRoundTrip),
     ("control message round-trip", testControlMessageRoundTrip),
@@ -339,7 +353,8 @@ let tests: [(String, () throws -> Void)] = [
     ("connection resolution switches both directions in automatic mode", testConnectionResolutionSwitchesBothDirectionsInAutomaticMode),
     ("manual connection modes do not auto fallback", testManualConnectionModesDoNotAutoFallback),
     ("automatic connection mode keeps Wi-Fi until pairing exists", testAutomaticConnectionModeKeepsWiFiUntilPairingExists),
-    ("pairing discovered Wi-Fi device forces Wi-Fi transport", testPairingDiscoveredWiFiDeviceForcesWiFiTransport)
+    ("pairing discovered Wi-Fi device forces Wi-Fi transport", testPairingDiscoveredWiFiDeviceForcesWiFiTransport),
+    ("quiet voice can use configured automatic gain", testQuietVoiceCanUseConfiguredAutomaticGain)
 ]
 
 do {
